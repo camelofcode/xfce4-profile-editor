@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: GPL-2.0-or-later -->
+<interface>
+  <requires lib="gtk" version="4.10" />
+  <template class="Xfce4ProfileEditorWindow" parent="GtkApplicationWindow">
+    <property name="default-height">560</property>
+    <property name="default-width">420</property>
+    <property name="title" translatable="yes">Profile</property>
+    <style>
+      <class name="profile-window" />
+    </style>
+    <property name="child">
+      <object class="GtkBox" id="profile_window_content">
+        <property name="margin-bottom">24</property>
+        <property name="margin-end">24</property>
+        <property name="margin-start">24</property>
+        <property name="margin-top">24</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">12</property>
+      </object>
+    </property>
+  </template>
+</interface>

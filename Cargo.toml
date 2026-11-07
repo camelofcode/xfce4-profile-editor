@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+[package]
+name = "xfce4-profile-editor"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+license = "GPL-2.0-or-later"
+description = "A system profile editor for Xfce"
+repository = "https://github.com/camelofcode/xfce4-profile-editor"
+
+[dependencies]
+gtk = { package = "gtk4", version = "0.11.5", features = ["v4_10", "xml_validation"] }
+
+[build-dependencies]
+glib-build-tools = "0.22.8"

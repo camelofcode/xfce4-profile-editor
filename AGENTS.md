@@ -2,7 +2,12 @@
 
 This project values explicit boundaries, readable Rust, and a small dependency
 surface. Read `IMPLEMENTATION_PLAN.md` before making architectural or
-scope-changing decisions.
+scope-changing decisions, then read `PROGRESS.md` to determine the current
+implementation state and next unfinished phase.
+
+Update `PROGRESS.md` whenever a phase is completed or paused, a material design
+decision changes, or work is handed off with uncommitted changes. Keep it
+concise and factual; do not duplicate the full implementation plan.
 
 ## Required skill
 

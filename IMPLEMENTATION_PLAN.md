@@ -11,6 +11,7 @@ Working identifiers:
 - repository and package: `xfce4-profile-editor`
 - executable: `xfce4-profile-editor`
 - window title: `Profile`
+- application ID: `io.github.camelofcode.Xfce4ProfileEditor`
 - licence: GNU General Public License version 2 or later
   (`GPL-2.0-or-later`)
 
@@ -431,7 +432,6 @@ Core changes require confirming that no GTK/GDK imports have crossed into
 These decisions should be made before the relevant implementation phase, not
 guessed during scaffolding:
 
-- final reverse-DNS application ID;
 - supported distribution/version matrix beyond Fedora;
 - the reviewed privileged-helper protocol and Polkit defaults;
 - whether a future Xfce contribution requires a Meson wrapper or other naming
