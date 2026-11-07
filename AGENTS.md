@@ -33,6 +33,15 @@ If a responsibility does not fit these boundaries, stop and make the ownership
 decision explicit before implementing it. Do not hide cross-layer behaviour in
 generic `helpers` or `utils` modules.
 
+## Licensing
+
+- The project is licensed as `GPL-2.0-or-later`; do not add code or assets with
+  incompatible terms.
+- Add `SPDX-License-Identifier: GPL-2.0-or-later` to new source, build, UI, and
+  metadata files using the comment syntax appropriate to that format.
+- Preserve third-party copyright and licence notices, and document vendored or
+  adapted material explicitly.
+
 ## UI integration
 
 - Use GTK 4.10-or-newer APIs and resource-backed composite templates.

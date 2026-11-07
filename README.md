@@ -22,3 +22,9 @@ store:
 
 Initials, fax details, and application-specific integrations are intentionally
 out of scope.
+
+## Licence
+
+Xfce Profile Editor is licensed under the
+[GNU General Public License, version 2 or later](LICENSE)
+(`GPL-2.0-or-later`).

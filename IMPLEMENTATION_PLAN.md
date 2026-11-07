@@ -11,6 +11,8 @@ Working identifiers:
 - repository and package: `xfce4-profile-editor`
 - executable: `xfce4-profile-editor`
 - window title: `Profile`
+- licence: GNU General Public License version 2 or later
+  (`GPL-2.0-or-later`)
 
 The project is initially an independent proposal, not an official Xfce
 component. A reverse-DNS application ID will be chosen after the hosting and
@@ -366,7 +368,6 @@ These decisions should be made before the relevant implementation phase, not
 guessed during scaffolding:
 
 - final reverse-DNS application ID;
-- project licence;
 - supported distribution/version matrix beyond Fedora;
 - the reviewed privileged-helper protocol and Polkit defaults;
 - whether a future Xfce contribution requires a Meson wrapper or other naming
