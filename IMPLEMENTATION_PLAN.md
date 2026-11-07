@@ -323,6 +323,65 @@ releases the device on every exit path.
 Completion: a clean package install appears in the application menu, launches
 from Whisker, and passes metadata validation.
 
+### Phase 7: CI and release automation
+
+Add GitHub Actions only after the local build and test commands are stable, so
+CI executes established project checks rather than becoming a second build
+system.
+
+While the repository is private, keep the workflow deliberately economical:
+
+- run on pull requests, pushes to `main`, and explicit manual dispatches;
+- use one standard Linux runner and one combined validation job rather than a
+  distribution or toolchain matrix;
+- run formatting, Clippy, tests, resource validation, and the supported
+  headless GTK checks;
+- cache Cargo downloads and appropriate build output with a bounded cache key;
+- cancel an older in-progress run when a newer commit arrives on the same
+  branch;
+- do not add scheduled, nightly, coverage, or multi-distribution jobs until the
+  repository is public or there is a demonstrated need;
+- upload artifacts only for manual package/release runs or when an artifact is
+  necessary to diagnose a failure, and retain temporary artifacts for no more
+  than seven days;
+- use read-only `GITHUB_TOKEN` permissions by default and grant
+  `contents: write` only to the release job;
+- pin every third-party action to a reviewed full commit SHA.
+
+Before enabling CI, set the repository's Actions spending limit to zero or
+otherwise ensure jobs stop when the included private-repository allowance is
+exhausted. Review actual runner usage after the first month rather than
+assuming the initial workflow is cheap enough.
+
+Create a separate release workflow with this lifecycle:
+
+1. A maintainer updates the version and release notes and runs all checks
+   locally.
+2. A signed annotated tag named `vMAJOR.MINOR.PATCH` is pushed.
+3. The tag workflow verifies that the tag matches the package version and that
+   the commit passes the complete validation suite.
+4. It builds the agreed source archive and supported package artifacts, then
+   generates SHA-256 checksums.
+5. It creates a **draft** GitHub Release using the repository's `GITHUB_TOKEN`
+   and attaches the verified artifacts and generated release notes.
+6. A maintainer downloads or installs the artifacts, checks the draft, and
+   publishes it manually.
+
+Do not put long-lived signing keys in Actions for the initial release process.
+If signed packages become necessary, design that key-management path
+separately. Exercise the release workflow through a non-publishing manual dry
+run before creating `v0.1.0`.
+
+When the repository becomes public, standard GitHub-hosted runners no longer
+consume the private-repository compute allowance. At that point, consider a
+supported-distribution matrix, scheduled dependency/security checks, coverage,
+and longer-lived useful artifacts; do not enable them automatically merely
+because they are free.
+
+Completion: ordinary CI is fast, cancellable, least-privileged, and remains
+within the configured zero-spend policy; a version tag can reproducibly create
+a reviewed draft release without publishing it automatically.
+
 ## 12. Verification
 
 ### Automated tests
@@ -338,6 +397,9 @@ from Whisker, and passes metadata validation.
 - Resource-load and window-lifecycle tests under a display or supported
   headless backend.
 - Camera-service tests with a fake frame source.
+- Workflow tests or dry runs proving that CI uses the same commands documented
+  for local development and that the release path cannot publish from an
+  unverified commit.
 
 ### Required checks for each feature
 
@@ -361,6 +423,8 @@ Core changes require confirming that no GTK/GDK imports have crossed into
 - Webcam present, absent, busy, denied, and unplugged during preview.
 - Light and dark GTK themes, HiDPI, keyboard-only navigation, and a small
   display.
+- A release-candidate installation from the exact artifacts attached to the
+  draft GitHub Release.
 
 ## 13. Early decisions still required
 
@@ -383,3 +447,9 @@ guessed during scaffolding:
   <https://github.com/l1npengtul/nokhwa>
 - Existing Mugshot implementation for behavioural comparison only:
   <https://github.com/bluesabre/mugshot>
+- GitHub Actions billing and included usage:
+  <https://docs.github.com/en/billing/concepts/product-billing/github-actions>
+- GitHub Actions budgets and hard usage stops:
+  <https://docs.github.com/en/billing/how-tos/set-up-budgets>
+- GitHub release management:
+  <https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository>

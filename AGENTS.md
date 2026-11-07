@@ -71,3 +71,11 @@ affected runtime flow with a display or supported headless backend. Before
 completion, confirm that no GTK/GDK imports or presentation types have entered
 `src/core/` and review the full diff for missing resources, tests, or packaging
 changes.
+
+GitHub Actions for the private repository must remain cost-conscious: keep one
+standard Linux validation job, cancel superseded runs, avoid scheduled or
+matrix jobs, and retain temporary artifacts for no more than seven days unless
+the implementation plan is deliberately revised. Workflows use read-only token
+permissions by default; only the tag-triggered release job may request
+`contents: write`. Release automation creates a draft for manual verification
+and must never publish a release directly.
