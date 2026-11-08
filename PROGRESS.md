@@ -12,7 +12,8 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 3 — safe persistence
 - Next phase: Phase 4 — image selection
-- Last approved commit before this checkpoint: `74b6429` (`Add interactive GECOS persistence`)
+- Last approved commit before this checkpoint: `3d648b4` (`Add AccountsService
+  email persistence`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
@@ -28,9 +29,10 @@ completed and what should happen next.
 - Completed checkpoint: Phase 3f application-side privileged-helper client
 - Completed checkpoint: Phase 3g interactive GECOS persistence
 - Completed checkpoint: Phase 3h AccountsService email persistence
-- Next checkpoint: Phase 4a image validation and normalisation core
+- Completed checkpoint: Phase 4a — image validation and normalisation core
+- Next checkpoint: Phase 4b — asynchronous image selection and preview
 - Work awaiting review: none
-- Expected repository state: clean after the approved Phase 3h commit
+- Expected repository state: clean after the approved Phase 4a commit
 
 ## Completed
 
@@ -294,6 +296,19 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 GSK_RENDERER=cairo G_DEBUG=fatal-warnings cargo test --workspace --all-features
 gtk4-builder-tool validate ui/windows/profile-window.ui
 ```
+
+Phase 4a is implemented and awaiting review. It adds a GTK-free image function
+that accepts PNG, JPEG, and WebP bytes; enforces 16 MiB input, 16,384-pixel
+side, and 32-megapixel limits; requests the image library's 128 MiB decoder
+allocation cap; applies embedded EXIF orientation; centre-crops without first
+allocating a full-size crop; and returns a 512 by 512 RGBA PNG. It does not yet
+add a file chooser, write `~/.face`, call AccountsService, or change the UI.
+
+Six focused tests cover PNG crop/output, JPEG EXIF orientation, WebP input,
+invalid and oversized data, excessive dimensions, and excessive total pixels.
+Clippy passes with warnings denied and the full workspace suite passes with 56
+tests. The core boundary search finds no GTK/GDK imports. Phase 4a was manually
+approved on 2026-11-08.
 
 ## Resuming on another machine
 

@@ -8,10 +8,10 @@ use thiserror::Error;
 use super::account_service::{AccountDetails, AccountsSource, SystemAccountsSource};
 use super::email_persistence::EmailState;
 use super::gecos_persistence::GecosState;
+use super::image::MAX_SOURCE_BYTES;
 use super::profile::{Avatar, AvatarSource, Profile, split_full_name};
 use super::user::{NssUserSource, UserLookupError, UserRecord, UserSource};
 
-const MAX_AVATAR_BYTES: u64 = 16 * 1024 * 1024;
 type AvatarCandidate = (PathBuf, fn(PathBuf) -> AvatarSource);
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -140,7 +140,7 @@ enum AvatarReadError {
     NotFound,
     #[error("not a regular file")]
     NotAFile,
-    #[error("file exceeds the {MAX_AVATAR_BYTES}-byte safety limit")]
+    #[error("file exceeds the {MAX_SOURCE_BYTES}-byte safety limit")]
     TooLarge,
     #[error("could not read file: {0}")]
     Read(#[source] std::io::Error),
@@ -157,7 +157,7 @@ fn read_avatar(path: &Path) -> Result<Vec<u8>, AvatarReadError> {
     if !metadata.is_file() {
         return Err(AvatarReadError::NotAFile);
     }
-    if metadata.len() > MAX_AVATAR_BYTES {
+    if metadata.len() > MAX_SOURCE_BYTES as u64 {
         return Err(AvatarReadError::TooLarge);
     }
 

@@ -7,6 +7,11 @@ mod email_persistence;
 mod gecos;
 mod gecos_helper;
 mod gecos_persistence;
+#[allow(
+    dead_code,
+    reason = "Phase 4a is reviewed independently before Phase 4b connects the file chooser"
+)]
+mod image;
 mod profile;
 mod profile_persistence;
 mod profile_store;

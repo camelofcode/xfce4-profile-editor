@@ -16,6 +16,7 @@ repository = "https://github.com/camelofcode/xfce4-profile-editor"
 [dependencies]
 gettext-rs = { version = "0.8.0", features = ["gettext-system"] }
 gtk = { package = "gtk4", version = "0.11.5", features = ["v4_10", "xml_validation"] }
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
 rustix = { version = "1.1.6", features = ["process"] }
 serde_json = "1.0.145"
 thiserror = "2.0.21"
