@@ -12,8 +12,8 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 3 — safe persistence
 - Next phase: Phase 4 — image selection
-- Last approved commit before this checkpoint: `3d648b4` (`Add AccountsService
-  email persistence`)
+- Last approved commit before this checkpoint: `18c3854` (`Add bounded avatar
+  image normalisation`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
@@ -30,9 +30,10 @@ completed and what should happen next.
 - Completed checkpoint: Phase 3g interactive GECOS persistence
 - Completed checkpoint: Phase 3h AccountsService email persistence
 - Completed checkpoint: Phase 4a — image validation and normalisation core
-- Next checkpoint: Phase 4b — asynchronous image selection and preview
+- Completed checkpoint: Phase 4b — asynchronous image selection and preview
+- Next checkpoint: Phase 4c — atomic image persistence and AccountsService update
 - Work awaiting review: none
-- Expected repository state: clean after the approved Phase 4a commit
+- Expected repository state: clean after the approved Phase 4b commit
 
 ## Completed
 
@@ -309,6 +310,27 @@ invalid and oversized data, excessive dimensions, and excessive total pixels.
 Clippy passes with warnings denied and the full workspace suite passes with 56
 tests. The core boundary search finds no GTK/GDK imports. Phase 4a was manually
 approved on 2026-11-08.
+
+Phase 4b is implemented. Activating the avatar now
+opens a template-defined action popover. Choose photo uses GTK's asynchronous
+native file dialog, filtered to PNG, JPEG, and WebP; Take photo is hidden until
+camera support exists, and Remove photo remains disabled for its later storage
+checkpoint. A selected local file is read with a hard 16 MiB bound and passed
+through the Phase 4a normaliser on a blocking worker, then the GTK layer renders
+only the resulting PNG preview. Cancellation is silent and file, decode, or
+preview failures are translated recoverable statuses with technical details in
+the tooltip. This checkpoint deliberately does not write `~/.face` or call
+AccountsService.
+
+Two additional core tests cover bounded local-file reads and rejection of
+directories and oversized files. Clippy passes with warnings denied, the full
+workspace suite passes with 58 tests, the updated template validates, gettext
+extraction contains all new UI messages, and the core boundary search finds no
+GTK/GDK imports. Manual review confirmed the native picker, centre-cropped
+preview, and error-free interaction. The release build produced the preview
+immediately; the roughly five-second debug-build delay was compiler
+optimisation rather than a release-runtime issue. Phase 4b was approved on
+2026-11-08.
 
 ## Resuming on another machine
 

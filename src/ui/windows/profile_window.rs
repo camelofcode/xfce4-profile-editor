@@ -11,6 +11,7 @@ use gtk::{gio, glib};
 use crate::core::{
     EmailState, EmailWriteError, GecosFields, GecosState, GecosWriteError, LoadWarning,
     LoadedProfile, Profile, ProfileSaveError, ProfileSaveOutcome, ProfileSaveRequest, ProfileStore,
+    SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES, normalise_avatar_file,
     save_current_profile,
 };
 
@@ -24,7 +25,13 @@ mod imp {
     #[template(resource = "/io/github/camelofcode/Xfce4ProfileEditor/ui/windows/profile-window.ui")]
     pub struct ProfileWindow {
         #[template_child]
+        pub avatar_menu_button: TemplateChild<gtk::MenuButton>,
+        #[template_child]
         pub avatar_picture: TemplateChild<gtk::Picture>,
+        #[template_child]
+        pub avatar_popover: TemplateChild<gtk::Popover>,
+        #[template_child]
+        pub choose_photo_button: TemplateChild<gtk::Button>,
         #[template_child]
         pub close_button: TemplateChild<gtk::Button>,
         #[template_child]
@@ -47,6 +54,7 @@ mod imp {
         pub(super) validation_timeout: RefCell<Option<glib::SourceId>>,
         pub(super) save_running: Cell<bool>,
         pub(super) close_after_save: Cell<bool>,
+        pub(super) image_selection_running: Cell<bool>,
     }
 
     #[glib::object_subclass]
@@ -73,6 +81,13 @@ mod imp {
             self.close_button.connect_clicked(move |_| {
                 if let Some(window) = weak_window.upgrade() {
                     window.close();
+                }
+            });
+
+            let weak_window = window.downgrade();
+            self.choose_photo_button.connect_clicked(move |_| {
+                if let Some(window) = weak_window.upgrade() {
+                    window.choose_photo();
                 }
             });
 
@@ -188,6 +203,7 @@ impl ProfileWindow {
         imp.email_state.replace(email_state);
         imp.load_warnings.replace(warnings);
         self.set_form_editable(true);
+        imp.avatar_menu_button.set_sensitive(true);
 
         for avatar in avatars {
             let tooltip = format!(
@@ -207,6 +223,127 @@ impl ProfileWindow {
         imp.loading_indicator.set_spinning(false);
         imp.loading_indicator.set_visible(false);
         self.show_loaded_warnings();
+    }
+
+    fn choose_photo(&self) {
+        let imp = self.imp();
+        if imp.image_selection_running.replace(true) {
+            return;
+        }
+        imp.choose_photo_button.set_sensitive(false);
+        imp.avatar_popover.popdown();
+
+        let filter = gtk::FileFilter::new();
+        filter.set_name(Some(&gettext("Images")));
+        for mime_type in SUPPORTED_AVATAR_MIME_TYPES {
+            filter.add_mime_type(mime_type);
+        }
+        for suffix in SUPPORTED_AVATAR_SUFFIXES {
+            filter.add_suffix(suffix);
+        }
+        let filters = gio::ListStore::new::<gtk::FileFilter>();
+        filters.append(&filter);
+        let dialog = gtk::FileDialog::builder()
+            .title(gettext("Choose a profile image"))
+            .modal(true)
+            .filters(&filters)
+            .default_filter(&filter)
+            .build();
+        let open = dialog.open_future(Some(self));
+        let weak_window = self.downgrade();
+        glib::spawn_future_local(async move {
+            match open.await {
+                Ok(file) => {
+                    let Some(window) = weak_window.upgrade() else {
+                        return;
+                    };
+                    if let Some(path) = file.path() {
+                        window.prepare_photo_preview(path);
+                    } else {
+                        window.finish_image_selection();
+                        window.show_save_status(
+                            &gettext("Only local image files can be used."),
+                            true,
+                            None,
+                        );
+                    }
+                }
+                Err(error) => {
+                    let Some(window) = weak_window.upgrade() else {
+                        return;
+                    };
+                    window.finish_image_selection();
+                    if !dialog_error_is_cancellation(&error) {
+                        let diagnostic = error.to_string();
+                        window.show_save_status(
+                            &gettext("The image chooser could not be opened."),
+                            true,
+                            Some(&diagnostic),
+                        );
+                    }
+                }
+            }
+        });
+    }
+
+    fn prepare_photo_preview(&self, path: std::path::PathBuf) {
+        self.show_save_status(&gettext("Preparing photo preview…"), false, None);
+        let worker_path = path.clone();
+        let weak_window = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = gio::spawn_blocking(move || normalise_avatar_file(&worker_path)).await;
+            let Some(window) = weak_window.upgrade() else {
+                return;
+            };
+            window.finish_image_selection();
+            match result {
+                Ok(Ok(png)) => window.show_photo_preview(path, png),
+                Ok(Err(error)) => {
+                    let diagnostic = error.to_string();
+                    window.show_save_status(
+                        &gettext("The selected image could not be used."),
+                        true,
+                        Some(&diagnostic),
+                    );
+                }
+                Err(_) => window.show_save_status(
+                    &gettext("Photo preview stopped unexpectedly."),
+                    true,
+                    None,
+                ),
+            }
+        });
+    }
+
+    fn show_photo_preview(&self, path: std::path::PathBuf, png: Vec<u8>) {
+        let bytes = glib::Bytes::from_owned(png);
+        match gtk::gdk::Texture::from_bytes(&bytes) {
+            Ok(texture) => {
+                let imp = self.imp();
+                imp.avatar_picture.set_paintable(Some(&texture));
+                imp.avatar_picture.set_tooltip_text(Some(&format!(
+                    "{}\n{}",
+                    gettext("Selected photo"),
+                    path.display()
+                )));
+                imp.avatar_picture.set_visible(true);
+                self.show_save_status(&gettext("Photo preview updated."), false, None);
+            }
+            Err(error) => {
+                let diagnostic = error.to_string();
+                self.show_save_status(
+                    &gettext("The photo preview could not be displayed."),
+                    true,
+                    Some(&diagnostic),
+                );
+            }
+        }
+    }
+
+    fn finish_image_selection(&self) {
+        let imp = self.imp();
+        imp.image_selection_running.set(false);
+        imp.choose_photo_button.set_sensitive(true);
     }
 
     fn gecos_fields(&self) -> GecosFields {
@@ -457,6 +594,12 @@ impl ProfileWindow {
         imp.status_label.set_label(message);
         imp.status_label.set_tooltip_text(None);
     }
+}
+
+fn dialog_error_is_cancellation(error: &glib::Error) -> bool {
+    error.matches(gtk::DialogError::Cancelled)
+        || error.matches(gtk::DialogError::Dismissed)
+        || error.matches(gio::IOErrorEnum::Cancelled)
 }
 
 fn localized_gecos_write_error(error: &GecosWriteError) -> String {

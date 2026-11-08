@@ -2,7 +2,9 @@
 
 //! Bounded, GTK-independent profile-image normalisation.
 
-use std::io::Cursor;
+use std::fs::File;
+use std::io::{Cursor, Read};
+use std::path::Path;
 
 use image::codecs::png::PngEncoder;
 use image::imageops::FilterType;
@@ -10,6 +12,8 @@ use image::{DynamicImage, GenericImageView, ImageDecoder, ImageEncoder, ImageRea
 use thiserror::Error;
 
 pub(super) const MAX_SOURCE_BYTES: usize = 16 * 1024 * 1024;
+pub(crate) const SUPPORTED_AVATAR_MIME_TYPES: [&str; 3] = ["image/png", "image/jpeg", "image/webp"];
+pub(crate) const SUPPORTED_AVATAR_SUFFIXES: [&str; 4] = ["png", "jpg", "jpeg", "webp"];
 const MAX_SOURCE_DIMENSION: u32 = 16_384;
 const MAX_SOURCE_PIXELS: u64 = 32_000_000;
 const MAX_DECODER_ALLOCATION: u64 = 128 * 1024 * 1024;
@@ -17,6 +21,14 @@ const NORMALISED_SIZE: u32 = 512;
 
 #[derive(Debug, Error)]
 pub(crate) enum ImageNormalisationError {
+    #[error("image file could not be opened: {0}")]
+    Open(#[source] std::io::Error),
+    #[error("image file metadata could not be read: {0}")]
+    Metadata(#[source] std::io::Error),
+    #[error("image path is not a regular file")]
+    NotAFile,
+    #[error("image file could not be read: {0}")]
+    Read(#[source] std::io::Error),
     #[error("image data is empty")]
     Empty,
     #[error("image data exceeds the {MAX_SOURCE_BYTES}-byte safety limit")]
@@ -29,6 +41,24 @@ pub(crate) enum ImageNormalisationError {
     Decode(#[source] image::ImageError),
     #[error("normalised PNG could not be encoded: {0}")]
     Encode(#[source] image::ImageError),
+}
+
+/// Reads a local regular file with a hard byte bound, then normalises it.
+pub(crate) fn normalise_avatar_file(path: &Path) -> Result<Vec<u8>, ImageNormalisationError> {
+    let file = File::open(path).map_err(ImageNormalisationError::Open)?;
+    let metadata = file.metadata().map_err(ImageNormalisationError::Metadata)?;
+    if !metadata.is_file() {
+        return Err(ImageNormalisationError::NotAFile);
+    }
+    if metadata.len() > MAX_SOURCE_BYTES as u64 {
+        return Err(ImageNormalisationError::SourceTooLarge);
+    }
+
+    let mut source = Vec::with_capacity(metadata.len() as usize);
+    file.take(MAX_SOURCE_BYTES as u64 + 1)
+        .read_to_end(&mut source)
+        .map_err(ImageNormalisationError::Read)?;
+    normalise_avatar(&source)
 }
 
 /// Decodes an image, applies its embedded orientation, and returns a square PNG.
@@ -101,11 +131,24 @@ fn validate_dimensions(width: u32, height: u32) -> Result<(), ImageNormalisation
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
     use image::codecs::jpeg::JpegEncoder;
     use image::codecs::webp::WebPEncoder;
     use image::{ColorType, ImageBuffer, ImageFormat, Rgb, RgbImage, Rgba, RgbaImage};
 
     use super::*;
+
+    static NEXT_TEMPORARY_FILE: AtomicU64 = AtomicU64::new(0);
+
+    fn temporary_file(name: &str) -> std::path::PathBuf {
+        let sequence = NEXT_TEMPORARY_FILE.fetch_add(1, Ordering::Relaxed);
+        std::env::temp_dir().join(format!(
+            "xfce4-profile-editor-{}-{sequence}-{name}",
+            std::process::id()
+        ))
+    }
 
     fn png_bytes(image: &RgbaImage) -> Vec<u8> {
         let mut output = Vec::new();
@@ -180,6 +223,21 @@ mod tests {
     }
 
     #[test]
+    fn reads_and_normalises_a_bounded_local_file() {
+        let path = temporary_file("valid.png");
+        let source = RgbaImage::from_pixel(2, 2, Rgba([20, 40, 60, 255]));
+        fs::write(&path, png_bytes(&source)).unwrap();
+
+        let output = normalise_avatar_file(&path).unwrap();
+
+        fs::remove_file(&path).unwrap();
+        assert_eq!(
+            decode_normalised(&output).dimensions(),
+            (NORMALISED_SIZE, NORMALISED_SIZE)
+        );
+    }
+
+    #[test]
     fn applies_embedded_exif_orientation_before_cropping() {
         let source = ImageBuffer::from_fn(40, 20, |x, _| {
             if x < 20 {
@@ -226,6 +284,25 @@ mod tests {
             normalise_avatar(b"not an image"),
             Err(ImageNormalisationError::Decode(_))
         ));
+    }
+
+    #[test]
+    fn rejects_non_file_and_oversized_file_paths() {
+        assert!(matches!(
+            normalise_avatar_file(&std::env::temp_dir()),
+            Err(ImageNormalisationError::NotAFile)
+        ));
+
+        let path = temporary_file("oversized.png");
+        let file = File::create(&path).unwrap();
+        file.set_len(MAX_SOURCE_BYTES as u64 + 1).unwrap();
+        drop(file);
+
+        assert!(matches!(
+            normalise_avatar_file(&path),
+            Err(ImageNormalisationError::SourceTooLarge)
+        ));
+        fs::remove_file(path).unwrap();
     }
 
     #[test]

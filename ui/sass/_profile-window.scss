@@ -14,3 +14,10 @@
 .profile-avatar picture {
   border-radius: 999px;
 }
+
+.profile-avatar menubutton > button {
+  border-radius: 999px;
+  min-height: 144px;
+  min-width: 144px;
+  padding: 0;
+}

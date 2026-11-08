@@ -45,23 +45,106 @@
                           <class name="profile-avatar"/>
                         </style>
                         <property name="child">
-                          <object class="GtkOverlay">
+                          <object class="GtkMenuButton" id="avatar_menu_button">
+                            <property name="has-frame">false</property>
+                            <property name="sensitive">false</property>
+                            <property name="tooltip-text" translatable="yes">Change profile image</property>
                             <property name="child">
-                              <object class="GtkImage" id="default_avatar">
-                                <property name="icon-name">avatar-default-symbolic</property>
-                                <property name="pixel-size">72</property>
-                                <property name="tooltip-text" translatable="yes">Default profile image</property>
+                              <object class="GtkOverlay">
+                                <property name="child">
+                                  <object class="GtkImage" id="default_avatar">
+                                    <property name="icon-name">avatar-default-symbolic</property>
+                                    <property name="pixel-size">72</property>
+                                    <property name="tooltip-text" translatable="yes">Default profile image</property>
+                                  </object>
+                                </property>
+                                <child type="overlay">
+                                  <object class="GtkPicture" id="avatar_picture">
+                                    <property name="can-shrink">true</property>
+                                    <property name="content-fit">cover</property>
+                                    <property name="height-request">144</property>
+                                    <property name="visible">false</property>
+                                    <property name="width-request">144</property>
+                                  </object>
+                                </child>
                               </object>
                             </property>
-                            <child type="overlay">
-                              <object class="GtkPicture" id="avatar_picture">
-                                <property name="can-shrink">true</property>
-                                <property name="content-fit">cover</property>
-                                <property name="height-request">144</property>
-                                <property name="visible">false</property>
-                                <property name="width-request">144</property>
+                            <property name="popover">
+                              <object class="GtkPopover" id="avatar_popover">
+                                <property name="child">
+                                  <object class="GtkBox">
+                                    <property name="margin-bottom">6</property>
+                                    <property name="margin-end">6</property>
+                                    <property name="margin-start">6</property>
+                                    <property name="margin-top">6</property>
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">3</property>
+                                    <child>
+                                      <object class="GtkButton" id="choose_photo_button">
+                                        <property name="has-frame">false</property>
+                                        <property name="child">
+                                          <object class="GtkBox">
+                                            <property name="spacing">6</property>
+                                            <child>
+                                              <object class="GtkImage">
+                                                <property name="icon-name">document-open-symbolic</property>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="label" translatable="yes">Choose photo</property>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="take_photo_button">
+                                        <property name="has-frame">false</property>
+                                        <property name="visible">false</property>
+                                        <property name="child">
+                                          <object class="GtkBox">
+                                            <property name="spacing">6</property>
+                                            <child>
+                                              <object class="GtkImage">
+                                                <property name="icon-name">camera-photo-symbolic</property>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="label" translatable="yes">Take photo</property>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="remove_photo_button">
+                                        <property name="has-frame">false</property>
+                                        <property name="sensitive">false</property>
+                                        <property name="child">
+                                          <object class="GtkBox">
+                                            <property name="spacing">6</property>
+                                            <child>
+                                              <object class="GtkImage">
+                                                <property name="icon-name">edit-delete-symbolic</property>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="label" translatable="yes">Remove photo</property>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </property>
                               </object>
-                            </child>
+                            </property>
                           </object>
                         </property>
                       </object>
