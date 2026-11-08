@@ -12,11 +12,12 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 2 — profile reads
 - Next phase: Phase 3 — safe persistence
-- Last approved commit: `ed90ac6` (`Record privileged GECOS update design`)
+- Last approved commit: `3e95734` (`Add safe profile helper boundary`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
-- Next checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
-- Expected repository state after the Phase 3b commit: clean and pushed
+- Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
+- Next checkpoint: Phase 3d — non-root staged installation
+- Expected repository state after the Phase 3c commit: clean and pushed
 
 ## Completed
 
@@ -100,9 +101,24 @@ and Close button.
 
 ## Next work
 
-Implement the one-shot helper executable, structured result mapping, and
-Polkit/package metadata. Do not install the policy or helper on the development
-machine and do not invoke a real account write during automated tests.
+Add a native installation target that supports `DESTDIR`, then stage an install
+under the build directory without root. Verify the exact file list, executable
+and data modes, and rendered absolute Polkit helper path. Do not install under
+`/usr`, register the policy, or exercise a real account write.
+
+Phase 3c verification passed with 28 tests:
+
+```text
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+GSK_RENDERER=cairo G_DEBUG=fatal-warnings cargo test --workspace --all-features
+gtk4-builder-tool validate ui/windows/profile-window.ui
+xmllint --noout data/polkit/io.github.camelofcode.Xfce4ProfileEditor.policy.in
+```
+
+The built helper links only the standard C/GCC runtime, not GTK. A direct
+unprivileged invocation refused to proceed with structured `not_privileged`
+status and exit code 4, before reading a request or account data.
 
 Phase 3b includes:
 

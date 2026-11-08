@@ -36,9 +36,10 @@ image/camera pipeline, or feature that crosses `src/ui/` and `src/core/`.
 - Shared lossless GECOS parsing and validation belongs in
   `crates/profile-data/`; both the application core and privileged helper must
   use it rather than maintaining parallel implementations.
-- The `crates/profile-helper/` package may not execute a command, install
-  policy, or touch a real account until the corresponding checkpoint in
-  `PROGRESS.md` is explicitly approved.
+- Automated tests for `crates/profile-helper/` must use its in-memory backend
+  and may never invoke `usermod`, install policy, or touch a real account.
+  Installing or connecting the production helper requires the corresponding
+  checkpoint in `PROGRESS.md` to be explicitly approved.
 
 If a responsibility does not fit these boundaries, stop and make the ownership
 decision explicit before implementing it. Do not hide cross-layer behaviour in

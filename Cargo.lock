@@ -956,6 +956,7 @@ dependencies = [
 name = "xfce4-profile-editor-helper"
 version = "0.1.0"
 dependencies = [
+ "rustix",
  "serde",
  "serde_json",
  "thiserror",

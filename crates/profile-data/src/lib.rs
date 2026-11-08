@@ -2,6 +2,8 @@
 
 //! GTK-independent profile data parsing, validation, and transformation.
 
+#![deny(unsafe_code)]
+
 use thiserror::Error;
 
 const FULL_NAME: usize = 0;

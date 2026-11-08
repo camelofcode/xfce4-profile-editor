@@ -3,12 +3,13 @@
 This workspace package contains the GTK-independent protocol and preparation
 logic for the future `xfce4-profile-editor-helper` executable.
 
-At the Phase 3b checkpoint it deliberately has no executable entry point and
-cannot change an account. It can only parse a bounded request, select the
-calling UID from supplied local-passwd data, validate an update, preserve the
-complete GECOS representation, and produce a fixed `usermod` command
-specification for tests.
+The Phase 3c checkpoint adds the one-shot executable entry point and production
+backend, but does not install or invoke them. It parses a bounded request,
+selects the calling UID from the local passwd database, validates an update,
+preserves the complete GECOS representation, runs only the fixed `usermod`
+command, and verifies the resulting local account.
 
-Do not add command execution, Polkit installation, or real-account write tests
-without the next explicit review described in `PROGRESS.md` and
-`docs/phase-3-gecos-persistence-spike.md`.
+Automated tests substitute an in-memory backend and must never execute the
+system command. Do not install the helper or Polkit policy, add real-account
+write tests, or connect the GTK application to this executable without the
+next explicit review described in `PROGRESS.md` and the security decision.
