@@ -12,7 +12,7 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 2 — profile reads
 - Next phase: Phase 3 — safe persistence
-- Last approved commit before this checkpoint: `09f16b8` (`Add repeatable developer workflow`)
+- Last approved commit before this checkpoint: `ee5a59e` (`Record Polkit integration verification`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
@@ -25,10 +25,10 @@ completed and what should happen next.
 - Completed checkpoint: Phase 3e system installation and application launch
 - Completed checkpoint: Phase 3e Polkit denial and authenticated stale-request
   tests
-- Next checkpoint: Phase 3f application-side persistence plumbing
-- Work awaiting review: Phase 3e verification record
-- Expected repository state: the progress update is deliberately uncommitted
-  until manual approval
+- Active checkpoint: Phase 3f application-side privileged-helper client
+- Work awaiting review: bounded helper invocation and typed outcome mapping
+- Expected repository state: the Phase 3f implementation and this progress
+  update are deliberately uncommitted until manual approval
 
 ## Completed
 
@@ -170,6 +170,16 @@ The current profile values were supplied as the proposed values for defence in
 depth, the deliberately incorrect `expected_gecos` value prevented the command
 boundary from being reached, and the exact passwd record was unchanged after
 both tests.
+
+The first Phase 3f slice adds a GTK-independent application client for the
+installed helper. It serialises the shared versioned protocol, validates and
+bounds requests before starting a process, invokes only the fixed `pkexec`,
+helper, and operation argument vector, drains bounded output, and maps Polkit
+and every helper response to typed core errors. Process execution is injected
+for tests: the 10 new client tests never start `pkexec`, display an
+authentication prompt, or touch account data. Clippy passes with warnings
+denied and all 39 workspace tests pass. Connecting this blocking boundary to
+profile state and the GTK coordinator remains a later checkpoint.
 
 The build-ergonomics checkpoint was manually approved on 2026-11-08. Its
 project skill detects CPU and memory before compile-heavy work. This netbook

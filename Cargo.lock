@@ -1119,8 +1119,10 @@ dependencies = [
  "glib-build-tools",
  "gtk4",
  "rustix",
+ "serde_json",
  "thiserror",
  "xfce4-profile-data",
+ "xfce4-profile-editor-helper",
  "zbus",
 ]
 

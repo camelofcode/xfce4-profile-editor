@@ -42,8 +42,10 @@ resource scheduling, not which required checks are eventually run.
   use it rather than maintaining parallel implementations.
 - Automated tests for `crates/profile-helper/` must use its in-memory backend
   and may never invoke `usermod`, install policy, or touch a real account.
-  Installing or connecting the production helper requires the corresponding
-  checkpoint in `PROGRESS.md` to be explicitly approved.
+  Application-side helper client tests must inject a fake process runner and
+  may never invoke `pkexec` or display an authentication prompt. Installing or
+  connecting the production helper requires the corresponding checkpoint in
+  `PROGRESS.md` to be explicitly approved.
 - Installation-layout checks must use a non-empty `DESTDIR` inside `target/`
   or `/tmp`; never run an unstaged install or write to `/usr` during automated
   verification.

@@ -15,6 +15,7 @@ use xfce4_profile_data::{Gecos, GecosUpdate, ValidationError};
 
 pub const PROTOCOL_VERSION: u8 = 1;
 pub const MAX_REQUEST_BYTES: usize = 4096;
+pub const MAX_RESPONSE_BYTES: usize = 4096;
 pub const MAX_PASSWD_BYTES: usize = 1024 * 1024;
 pub const USERMOD_PATH: &str = "/usr/sbin/usermod";
 pub const UPDATE_GECOS_OPERATION: &str = "update-gecos";
@@ -412,7 +413,8 @@ fn system_error(context: &str, error: &impl std::fmt::Display) -> HelperResponse
     }
 }
 
-fn response_exit_code(response: &HelperResponse) -> u8 {
+#[must_use]
+pub fn response_exit_code(response: &HelperResponse) -> u8 {
     match response {
         HelperResponse::Success => 0,
         HelperResponse::Error {

@@ -131,6 +131,7 @@ translation catalogs. There must not be a second Make-based install path.
 │   │   ├── account_service.rs
 │   │   ├── camera.rs
 │   │   ├── gecos.rs
+│   │   ├── gecos_helper.rs
 │   │   ├── image.rs
 │   │   ├── profile.rs
 │   │   └── profile_store.rs

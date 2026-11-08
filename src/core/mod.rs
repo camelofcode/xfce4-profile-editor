@@ -4,6 +4,10 @@
 
 mod account_service;
 mod gecos;
+// The production client is intentionally connected to the UI in the next
+// checkpoint; this checkpoint verifies its isolated process boundary first.
+#[allow(dead_code)]
+mod gecos_helper;
 mod profile;
 mod profile_store;
 mod user;
