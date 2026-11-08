@@ -169,6 +169,12 @@ example, the local image was saved but AccountsService could not be updated.
 
 ## 7. Privileged GECOS updates
 
+The Phase 3 compatibility and security decision is recorded in
+[`docs/phase-3-gecos-persistence-spike.md`](docs/phase-3-gecos-persistence-spike.md).
+It selects a narrowly scoped `pkexec` helper using the system `usermod`
+primitive and rejects AccountsService `SetRealName` and `chfn` because they do
+not preserve every GECOS field representation required by this project.
+
 The GTK process must never edit `/etc/passwd`, collect a password, invoke a
 shell, or interpolate user values into a command string.
 

@@ -12,8 +12,10 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 2 — profile reads
 - Next phase: Phase 3 — safe persistence
-- Last approved commit: Phase 2 profile reads (see the latest `git log` entry)
-- Expected repository state after the Phase 2 commit: clean and pushed
+- Last approved commit: `03ec7eb` (`Add read-only system profile loading`)
+- Completed checkpoint: Phase 3a — GECOS persistence security decision
+- Next checkpoint: Phase 3b — pure helper boundary and tests
+- Expected repository state after the Phase 3a commit: clean and pushed
 
 ## Completed
 
@@ -97,9 +99,9 @@ and Close button.
 
 ## Next work
 
-Begin Phase 3 with the focused Polkit/helper compatibility and security spike.
-Document and test the chosen GECOS update boundary before implementing editable
-fields or any privileged write path.
+Implement the helper's pure protocol, validation, local-account, and
+lossless-update logic with tests, but stop again before installing a Polkit
+policy or performing a real account write.
 
 ## Resuming on another machine
 
