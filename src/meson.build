@@ -3,7 +3,7 @@
 cargo = find_program('cargo')
 sh = find_program('sh')
 cargo_build_script = files('../build-aux/cargo-build.sh')
-cargo_target_dir = meson.project_build_root() / 'cargo-target'
+cargo_target_dir = meson.project_source_root() / 'target'
 
 cargo_environment = environment()
 cargo_environment.set('GETTEXT_PACKAGE', gettext_package)

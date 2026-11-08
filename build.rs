@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use std::env;
+use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
@@ -28,16 +29,21 @@ fn main() {
 }
 
 fn compile_scss(input: &Path, output: &Path) {
+    let temporary_output = output.with_extension("css.tmp");
     match Command::new("sass")
         .args(["--no-source-map", "--style=expanded"])
         .arg(input)
-        .arg(output)
+        .arg(&temporary_output)
         .status()
     {
         Ok(status) => require_success("sass", status),
-        Err(error) if error.kind() == ErrorKind::NotFound => compile_with_sassc(input, output),
+        Err(error) if error.kind() == ErrorKind::NotFound => {
+            compile_with_sassc(input, &temporary_output);
+        }
         Err(error) => panic!("failed to run sass: {error}"),
     }
+
+    replace_if_changed(&temporary_output, output);
 }
 
 fn compile_with_sassc(input: &Path, output: &Path) {
@@ -55,4 +61,17 @@ fn compile_with_sassc(input: &Path, output: &Path) {
 
 fn require_success(program: &str, status: ExitStatus) {
     assert!(status.success(), "{program} exited with status {status}");
+}
+
+fn replace_if_changed(candidate: &Path, output: &Path) {
+    let candidate_bytes = fs::read(candidate)
+        .unwrap_or_else(|error| panic!("failed to read {}: {error}", candidate.display()));
+    let unchanged = fs::read(output).is_ok_and(|current_bytes| current_bytes == candidate_bytes);
+
+    if !unchanged {
+        fs::write(output, &candidate_bytes)
+            .unwrap_or_else(|error| panic!("failed to write {}: {error}", output.display()));
+    }
+    fs::remove_file(candidate)
+        .unwrap_or_else(|error| panic!("failed to remove {}: {error}", candidate.display()));
 }

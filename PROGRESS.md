@@ -12,15 +12,17 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 2 — profile reads
 - Next phase: Phase 3 — safe persistence
-- Last approved commit before this checkpoint: `26fcd74` (`Add one-shot privileged helper runner`)
+- Last approved commit before this checkpoint: `b3ff2b3` (`Adopt Meson and gettext foundation`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
 - Completed checkpoint: Phase 3d — Meson packaging, gettext baseline, and
   non-root staged installation
+- Completed checkpoint: resource-aware build policy and shared Cargo/Meson
+  compilation cache
 - Next checkpoint: Phase 3e — explicitly approved system installation and safe
   Polkit prompt test
-- Expected repository state after the Phase 3d commit: clean and pushed
+- Expected repository state after the build-ergonomics commit: clean and pushed
 
 ## Completed
 
@@ -101,6 +103,14 @@ and Close button.
   pushed directly to `main` while the repository is private.
 - Pull requests and branch protection will become the normal workflow when the
   repository is public.
+- Compile-heavy commands select a resource mode from the current machine. The
+  netbook favours desktop responsiveness; capable workstations and CI retain
+  Cargo's default parallelism. All environments run the same required checks.
+- Direct Cargo and Meson builds share the workspace target cache rather than
+  compiling the GTK dependency graph twice.
+- A release runtime spot-check found the Rust/GTK4 application within about
+  3.4 MiB PSS and 1.3 MiB private-dirty memory of a comparable temporary
+  C/GTK4 window. Keep Rust and benchmark release-profile tuning before release.
 
 ## Next work
 
@@ -142,6 +152,16 @@ no GTK dependency.
 The next manual checkpoint may install the same three files under `/usr` with
 explicit approval and exercise the standard Polkit prompt using a deliberately
 stale request that cannot reach `usermod`.
+
+The build-ergonomics checkpoint was manually approved on 2026-11-08. Its
+project skill detects CPU and memory before compile-heavy work. This netbook
+selects one-job, low-priority responsive builds; an 8-or-more-CPU machine with
+at least 16 GiB RAM selects unrestricted Cargo parallelism when memory is
+available. Meson now shares Cargo's workspace target cache. The resource build
+script also avoids rewriting unchanged generated CSS, eliminating a
+self-triggered rebuild loop: an unchanged warm Meson release build fell from
+about 23 seconds to 0.12 seconds. Clippy and all 29 tests pass in responsive
+mode.
 
 Phase 3c verification passed with 28 tests:
 

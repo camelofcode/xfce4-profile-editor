@@ -15,6 +15,10 @@ Use `.agents/skills/ui-core-boundary/SKILL.md` whenever a change adds or
 substantially modifies a GTK window, UI flow, system service, persistence path,
 image/camera pipeline, or feature that crosses `src/ui/` and `src/core/`.
 
+Use `.agents/skills/resource-aware-builds/SKILL.md` before the first
+compile-heavy Cargo or Meson command in a session. Its detected mode controls
+resource scheduling, not which required checks are eventually run.
+
 ## Component boundaries
 
 - Layout belongs in `ui/**/*.ui`. This includes widget hierarchy, spacing,
@@ -46,6 +50,8 @@ image/camera pipeline, or feature that crosses `src/ui/` and `src/core/`.
 - Meson is the supported build/install entry point and drives Cargo. Do not add
   a parallel Makefile install path; keep Cargo workspace commands for Rust
   formatting, linting, and tests.
+- Direct Cargo and Meson builds share the workspace `target/` cache. Do not
+  create duplicate dependency caches without a demonstrated isolation need.
 
 If a responsibility does not fit these boundaries, stop and make the ownership
 decision explicit before implementing it. Do not hide cross-layer behaviour in
