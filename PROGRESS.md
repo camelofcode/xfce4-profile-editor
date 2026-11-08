@@ -12,12 +12,15 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 2 — profile reads
 - Next phase: Phase 3 — safe persistence
-- Last approved commit: `3e95734` (`Add safe profile helper boundary`)
+- Last approved commit before this checkpoint: `26fcd74` (`Add one-shot privileged helper runner`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
-- Next checkpoint: Phase 3d — non-root staged installation
-- Expected repository state after the Phase 3c commit: clean and pushed
+- Completed checkpoint: Phase 3d — Meson packaging, gettext baseline, and
+  non-root staged installation
+- Next checkpoint: Phase 3e — explicitly approved system installation and safe
+  Polkit prompt test
+- Expected repository state after the Phase 3d commit: clean and pushed
 
 ## Completed
 
@@ -101,10 +104,44 @@ and Close button.
 
 ## Next work
 
-Add a native installation target that supports `DESTDIR`, then stage an install
-under the build directory without root. Verify the exact file list, executable
-and data modes, and rendered absolute Polkit helper path. Do not install under
-`/usr`, register the policy, or exercise a real account write.
+Phase 3d was manually approved on 2026-11-08. Meson is now the single supported
+build/install entry point and drives locked Cargo workspace builds. It supports
+standard `DESTDIR` and directory options and renders the absolute helper path
+into the Polkit policy. The application template, runtime presentation
+messages, and Polkit authentication prompt are gettext-enabled; the generated
+POT is tracked from the start. This supersedes the uncommitted Makefile staging
+draft after review of the gtk-rs application guidance.
+
+Nothing is installed under `/usr`, and the staged policy is not registered.
+
+Phase 3d verification currently passes with 29 tests and a generated catalog
+containing all 19 current user-facing messages:
+
+```text
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+GSK_RENDERER=cairo G_DEBUG=fatal-warnings cargo test --workspace --all-features
+gtk4-builder-tool validate ui/windows/profile-window.ui
+xmllint --noout data/polkit/io.github.camelofcode.Xfce4ProfileEditor.policy.in
+meson compile -C target/meson-build xfce4-profile-editor-pot
+msgfmt --check --check-accelerators=_ po/xfce4-profile-editor.pot
+```
+
+The Meson release build staged and verified:
+
+```text
+usr/bin/xfce4-profile-editor                                      0755
+usr/libexec/xfce4-profile-editor-helper                          0755
+usr/share/polkit-1/actions/io.github.camelofcode.Xfce4ProfileEditor.policy  0644
+```
+
+The rendered policy retains the gettext domain and binds the action to the
+absolute `/usr/libexec/xfce4-profile-editor-helper` path. The helper still has
+no GTK dependency.
+
+The next manual checkpoint may install the same three files under `/usr` with
+explicit approval and exercise the standard Polkit prompt using a deliberately
+stale request that cannot reach `usermod`.
 
 Phase 3c verification passed with 28 tests:
 

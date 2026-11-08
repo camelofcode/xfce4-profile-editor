@@ -1,0 +1,95 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the xfce4-profile-editor package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: xfce4-profile-editor\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-08 01:25+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: po/polkit-messages.rs:6
+msgid "Change your profile name and phone numbers"
+msgstr ""
+
+#: po/polkit-messages.rs:7
+msgid ""
+"Authentication is required to change your profile name and phone numbers"
+msgstr ""
+
+#: ui/windows/profile-window.ui:8
+msgid "Profile"
+msgstr ""
+
+#: ui/windows/profile-window.ui:53
+msgid "Default profile image"
+msgstr ""
+
+#: ui/windows/profile-window.ui:76
+msgid "_First name:"
+msgstr ""
+
+#: ui/windows/profile-window.ui:100
+msgid "_Last name:"
+msgstr ""
+
+#: ui/windows/profile-window.ui:122
+msgid "_Home phone:"
+msgstr ""
+
+#: ui/windows/profile-window.ui:144
+msgid "_Email address:"
+msgstr ""
+
+#: ui/windows/profile-window.ui:166
+msgid "_Office phone:"
+msgstr ""
+
+#: ui/windows/profile-window.ui:197
+msgid "Loading profile…"
+msgstr ""
+
+#: ui/windows/profile-window.ui:220
+msgid "Help will be added in a later phase"
+msgstr ""
+
+#: ui/windows/profile-window.ui:231
+msgid "Help"
+msgstr ""
+
+#: ui/windows/profile-window.ui:252
+msgid "Close"
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:97
+msgid "The current user account could not be read."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:99
+msgid "Profile loading stopped unexpectedly."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:124
+msgid "Profile image"
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:160
+msgid "Some profile information could not be loaded."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:173
+msgid "AccountsService profile information could not be read."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:177
+msgid "A profile image could not be used."
+msgstr ""

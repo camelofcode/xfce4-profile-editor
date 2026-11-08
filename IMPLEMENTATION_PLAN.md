@@ -69,8 +69,14 @@ No application-specific GSettings profile store is needed.
 - GTK 4.10 or newer.
 - Raw `gtk4-rs` composite templates rather than Relm4, so layout remains in
   `.ui` resources.
+- Meson is the supported project build and installation entry point. It drives
+  Cargo for Rust compilation and provides the native packaging and gettext
+  integration expected by the GTK ecosystem.
 - GResource for UI templates, compiled CSS, icons, and other static assets.
 - SCSS for the small amount of styling needed for the avatar and status states.
+- GNU gettext for every user-visible string from the start: GtkBuilder strings
+  use `translatable="yes"`, Rust presentation strings use `gettext-rs`, and
+  system-owned Polkit prompts declare the same text domain.
 - A D-Bus client suitable for keeping AccountsService access outside the GTK
   layer.
 - `nokhwa` with the native Linux backend for webcam discovery and capture,
@@ -78,9 +84,10 @@ No application-specific GSettings profile store is needed.
 - A non-GTK image library for orientation, square cropping, resizing, and PNG
   encoding.
 
-Cargo is the initial build source of truth. `build.rs` will compile SCSS and
-GResources. A Meson packaging wrapper can be added later if required by Xfce or
-distribution packaging without changing the source layout.
+Cargo remains the Rust compiler and workspace/test runner. `build.rs` compiles
+the embedded SCSS and GResources for both Cargo and Meson builds, while Meson
+owns supported build profiles, installation paths, policy rendering, and
+translation catalogs. There must not be a second Make-based install path.
 
 ## 5. Repository layout
 
@@ -89,7 +96,11 @@ distribution packaging without changing the source layout.
 ├── AGENTS.md
 ├── Cargo.toml
 ├── build.rs
+├── meson.build
+├── meson_options.txt
 ├── resources.gresource.xml
+├── build-aux/
+│   └── cargo-build.sh
 ├── crates/
 │   ├── profile-data/
 │   │   └── src/lib.rs
@@ -99,11 +110,20 @@ distribution packaging without changing the source layout.
 │           ├── lib.rs
 │           └── main.rs
 ├── data/
+│   ├── meson.build
 │   ├── icons/
 │   ├── polkit/
 │   ├── xfce4-profile-editor.desktop.in
 │   └── xfce4-profile-editor.metainfo.xml.in
+├── po/
+│   ├── LINGUAS
+│   ├── POTFILES.in
+│   ├── meson.build
+│   └── xfce4-profile-editor.pot
 ├── src/
+│   ├── config.rs
+│   ├── i18n.rs
+│   ├── meson.build
 │   ├── main.rs
 │   ├── core/
 │   │   ├── account_service.rs
@@ -331,8 +351,9 @@ releases the device on every exit path.
 
 ### Phase 6: desktop integration and packaging
 
-- Add the desktop file, application icon, AppStream metadata, help, and gettext
-  translations.
+- Add the desktop file, application icon, AppStream metadata, help, initial
+  translation catalogs, and translator documentation. The Meson/gettext
+  infrastructure and message marking are established in earlier phases.
 - Package the helper and Polkit policy with safe ownership and permissions.
 - Document setting Whisker Menu's Edit Profile command to
   `xfce4-profile-editor`.
@@ -425,6 +446,9 @@ a reviewed draft release without publishing it automatically.
 cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-features
+meson setup target/meson-build
+meson compile -C target/meson-build
+meson compile -C target/meson-build xfce4-profile-editor-pot
 ```
 
 UI changes also require loading the affected template and exercising the flow.
@@ -450,8 +474,7 @@ These decisions should be made before the relevant implementation phase, not
 guessed during scaffolding:
 
 - supported distribution/version matrix beyond Fedora;
-- whether a future Xfce contribution requires a Meson wrapper or other naming
-  changes.
+- naming changes required by a future Xfce contribution.
 
 ## 14. Primary references
 
@@ -459,6 +482,8 @@ guessed during scaffolding:
   <https://www.freedesktop.org/software/accountsservice/>
 - GTK Rust composite templates:
   <https://gtk-rs.org/gtk4-rs/stable/latest/book/composite_templates.html>
+- GTK Rust internationalisation and Meson integration:
+  <https://gtk-rs.org/gtk4-rs/stable/latest/book/i18n.html>
 - Nokhwa camera library:
   <https://github.com/l1npengtul/nokhwa>
 - Existing Mugshot implementation for behavioural comparison only:

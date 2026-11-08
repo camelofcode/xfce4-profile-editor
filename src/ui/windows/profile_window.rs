@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use gettextrs::gettext;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::{gio, glib};
@@ -92,8 +93,10 @@ impl ProfileWindow {
 
             match result {
                 Ok(Ok(loaded)) => window.show_profile(loaded),
-                Ok(Err(error)) => window.show_load_error(&error.to_string()),
-                Err(_) => window.show_load_error("Profile loading stopped unexpectedly."),
+                Ok(Err(_)) => {
+                    window.show_load_error(&gettext("The current user account could not be read."))
+                }
+                Err(_) => window.show_load_error(&gettext("Profile loading stopped unexpectedly.")),
             }
         });
     }
@@ -116,7 +119,11 @@ impl ProfileWindow {
         imp.office_phone_entry.set_text(&office_phone);
 
         for avatar in avatars {
-            let tooltip = format!("Profile image from {}", avatar.source_path().display());
+            let tooltip = format!(
+                "{}\n{}",
+                gettext("Profile image"),
+                avatar.source_path().display()
+            );
             let bytes = glib::Bytes::from_owned(avatar.bytes);
             if let Ok(texture) = gtk::gdk::Texture::from_bytes(&bytes) {
                 imp.avatar_picture.set_paintable(Some(&texture));
@@ -150,14 +157,27 @@ fn show_warnings(label: &gtk::Label, warnings: &[LoadWarning]) {
 
     label.remove_css_class("dim-label");
     label.add_css_class("warning");
-    label.set_label("Some profile information could not be loaded.");
+    label.set_label(&gettext("Some profile information could not be loaded."));
     label.set_tooltip_text(Some(
         &warnings
             .iter()
-            .map(ToString::to_string)
+            .map(localized_warning)
             .collect::<Vec<_>>()
-            .join("\n"),
+            .join("\n\n"),
     ));
+}
+
+fn localized_warning(warning: &LoadWarning) -> String {
+    match warning {
+        LoadWarning::AccountsServiceUnavailable(_) => {
+            gettext("AccountsService profile information could not be read.")
+        }
+        LoadWarning::AvatarUnavailable { path, .. } => format!(
+            "{}\n{}",
+            gettext("A profile image could not be used."),
+            path.display()
+        ),
+    }
 }
 
 #[cfg(test)]
@@ -173,6 +193,7 @@ mod tests {
 
         gio::resources_register_include!("xfce4_profile_editor.gresource")
             .expect("failed to register test resources");
+        crate::i18n::init();
         crate::ui::load_styles();
 
         let application = gtk::Application::builder()
@@ -183,7 +204,7 @@ mod tests {
             .expect("failed to register test application");
         let window = ProfileWindow::new(&application);
 
-        assert_eq!(window.title().as_deref(), Some("Profile"));
+        assert!(window.title().is_some_and(|title| !title.is_empty()));
         window.present();
         assert!(window.is_visible());
         window.close();

@@ -8,8 +8,8 @@
   <vendor_url>https://github.com/camelofcode/xfce4-profile-editor</vendor_url>
   <icon_name>avatar-default-symbolic</icon_name>
   <action id="io.github.camelofcode.Xfce4ProfileEditor.modify-gecos">
-    <description>Change your profile name and phone numbers</description>
-    <message>Authentication is required to change your profile name and phone numbers</message>
+    <description gettext-domain="xfce4-profile-editor">Change your profile name and phone numbers</description>
+    <message gettext-domain="xfce4-profile-editor">Authentication is required to change your profile name and phone numbers</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>

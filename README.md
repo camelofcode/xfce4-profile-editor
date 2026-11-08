@@ -32,14 +32,35 @@ Xfce Profile Editor is licensed under the
 
 ## Development
 
-The foundation requires Rust 1.92 or newer, GTK 4.10 development files,
-`pkg-config`, `glib-compile-resources`, and either Dart Sass (`sass`) or
-`sassc`.
+The foundation requires Rust 1.92 or newer, Meson 1.4 or newer, GTK 4.10
+development files, GNU gettext, `pkg-config`, `glib-compile-resources`, and
+either Dart Sass (`sass`) or `sassc`.
 
-Build and run it with:
+Configure, build, and run a development build with:
 
 ```sh
-cargo run
+meson setup target/meson-build -Dprofile=development
+meson compile -C target/meson-build
+target/meson-build/src/xfce4-profile-editor
+```
+
+Stage the native installation layout without root access with:
+
+```sh
+meson setup target/meson-release --prefix=/usr -Dprofile=release
+DESTDIR="$PWD/target/staged-install" meson install -C target/meson-release
+```
+
+This builds release binaries and places the application, helper, and rendered
+Polkit policy below `DESTDIR`. It does not register or activate the policy.
+Meson honours standard installation-directory options for package builds. Do
+not run an unstaged system installation during development.
+
+All user-visible messages are gettext-enabled. Refresh the translation template
+after changing strings with:
+
+```sh
+meson compile -C target/meson-build xfce4-profile-editor-pot
 ```
 
 Run the workspace checks with:
@@ -49,4 +70,5 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 gtk4-builder-tool validate ui/windows/profile-window.ui
+xmllint --noout data/polkit/io.github.camelofcode.Xfce4ProfileEditor.policy.in
 ```

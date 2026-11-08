@@ -40,6 +40,12 @@ image/camera pipeline, or feature that crosses `src/ui/` and `src/core/`.
   and may never invoke `usermod`, install policy, or touch a real account.
   Installing or connecting the production helper requires the corresponding
   checkpoint in `PROGRESS.md` to be explicitly approved.
+- Installation-layout checks must use a non-empty `DESTDIR` inside `target/`
+  or `/tmp`; never run an unstaged install or write to `/usr` during automated
+  verification.
+- Meson is the supported build/install entry point and drives Cargo. Do not add
+  a parallel Makefile install path; keep Cargo workspace commands for Rust
+  formatting, linting, and tests.
 
 If a responsibility does not fit these boundaries, stop and make the ownership
 decision explicit before implementing it. Do not hide cross-layer behaviour in
@@ -64,6 +70,10 @@ generic `helpers` or `utils` modules.
   state is genuinely dynamic.
 - Every new or renamed UI/SCSS resource must be reflected in the GResource and
   build inputs and covered by a resource-load check.
+- Every user-visible string must be translatable when introduced. Mark static
+  GtkBuilder properties with `translatable="yes"`, call gettext for runtime UI
+  messages in `src/ui/`, and keep Polkit extraction markers aligned with the
+  policy. Core and helper errors remain typed, locale-independent diagnostics.
 
 ## System data and security
 

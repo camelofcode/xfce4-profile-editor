@@ -11,6 +11,8 @@ const RESOURCE_MANIFEST: &str = "resources.gresource.xml";
 const RESOURCE_OUTPUT: &str = "xfce4_profile_editor.gresource";
 
 fn main() {
+    println!("cargo:rerun-if-env-changed=GETTEXT_PACKAGE");
+    println!("cargo:rerun-if-env-changed=LOCALEDIR");
     println!("cargo:rerun-if-changed={SCSS_ENTRY_POINT}");
     for partial in SCSS_PARTIALS {
         println!("cargo:rerun-if-changed={partial}");

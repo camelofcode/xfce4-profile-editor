@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+po/polkit-messages.rs
+ui/windows/profile-window.ui
+src/ui/windows/profile_window.rs

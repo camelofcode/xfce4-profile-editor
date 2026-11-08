@@ -2,20 +2,22 @@
 
 #![deny(unsafe_code)]
 
+mod config;
 mod core;
+mod i18n;
 mod ui;
 
 use gtk::prelude::*;
 use gtk::{gio, glib};
 
-const APPLICATION_ID: &str = "io.github.camelofcode.Xfce4ProfileEditor";
-
 fn main() -> glib::ExitCode {
+    i18n::init();
+
     gio::resources_register_include!("xfce4_profile_editor.gresource")
         .expect("failed to register application resources");
 
     let application = gtk::Application::builder()
-        .application_id(APPLICATION_ID)
+        .application_id(config::APPLICATION_ID)
         .build();
 
     application.connect_startup(|_| ui::load_styles());
