@@ -12,10 +12,11 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 2 — profile reads
 - Next phase: Phase 3 — safe persistence
-- Last approved commit: `03ec7eb` (`Add read-only system profile loading`)
+- Last approved commit: `ed90ac6` (`Record privileged GECOS update design`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
-- Next checkpoint: Phase 3b — pure helper boundary and tests
-- Expected repository state after the Phase 3a commit: clean and pushed
+- Completed checkpoint: Phase 3b — pure helper boundary and tests
+- Next checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
+- Expected repository state after the Phase 3b commit: clean and pushed
 
 ## Completed
 
@@ -99,9 +100,32 @@ and Close button.
 
 ## Next work
 
-Implement the helper's pure protocol, validation, local-account, and
-lossless-update logic with tests, but stop again before installing a Polkit
-policy or performing a real account write.
+Implement the one-shot helper executable, structured result mapping, and
+Polkit/package metadata. Do not install the policy or helper on the development
+machine and do not invoke a real account write during automated tests.
+
+Phase 3b includes:
+
+- a single shared lossless GECOS implementation used by the application and
+  helper;
+- conservative validation duplicated at the privileged boundary;
+- a size-limited, versioned JSON request and structured response model;
+- exact local `/etc/passwd` account selection from a caller UID, rejecting UID
+  0, missing, duplicate, and malformed entries;
+- stale-data rejection using the exact originally loaded GECOS value;
+- preparation of a fixed `/usr/sbin/usermod --comment ... -- USERNAME`
+  argument vector without executing it;
+- tests for short, empty, trailing-empty, hidden, and extra GECOS fields,
+  hostile protocol input, target selection, validation, and command shape.
+
+Phase 3b verification passed with 22 tests:
+
+```text
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+GSK_RENDERER=cairo G_DEBUG=fatal-warnings cargo test --workspace --all-features
+gtk4-builder-tool validate ui/windows/profile-window.ui
+```
 
 ## Resuming on another machine
 

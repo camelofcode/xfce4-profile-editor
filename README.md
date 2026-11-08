@@ -42,11 +42,11 @@ Build and run it with:
 cargo run
 ```
 
-Run the baseline checks with:
+Run the workspace checks with:
 
 ```sh
-cargo fmt --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test --all-features
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace --all-features
 gtk4-builder-tool validate ui/windows/profile-window.ui
 ```

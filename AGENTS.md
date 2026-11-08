@@ -33,6 +33,12 @@ image/camera pipeline, or feature that crosses `src/ui/` and `src/core/`.
   and typed errors.
 - Keep the privileged helper independent of GTK and narrowly limited to the
   current caller's supported GECOS fields.
+- Shared lossless GECOS parsing and validation belongs in
+  `crates/profile-data/`; both the application core and privileged helper must
+  use it rather than maintaining parallel implementations.
+- The `crates/profile-helper/` package may not execute a command, install
+  policy, or touch a real account until the corresponding checkpoint in
+  `PROGRESS.md` is explicitly approved.
 
 If a responsibility does not fit these boundaries, stop and make the ownership
 decision explicit before implementing it. Do not hide cross-layer behaviour in
@@ -71,11 +77,13 @@ generic `helpers` or `utils` modules.
 ## Verification
 
 Run formatting, Clippy with warnings denied, and the relevant tests for every
-change. UI work additionally requires resource loading and exercising the
-affected runtime flow with a display or supported headless backend. Before
-completion, confirm that no GTK/GDK imports or presentation types have entered
-`src/core/` and review the full diff for missing resources, tests, or packaging
-changes.
+change. Use workspace-wide commands so the shared data and privileged-helper
+crates are always included. UI work additionally requires resource loading and
+exercising the affected runtime flow with a display or supported headless
+backend. Before completion, confirm that no GTK/GDK imports or presentation
+types have entered `src/core/`, `crates/profile-data/`, or
+`crates/profile-helper/`, and review the full diff for missing resources,
+tests, or packaging changes.
 
 GitHub Actions for the private repository must remain cost-conscious: keep one
 standard Linux validation job, cancel superseded runs, avoid scheduled or

@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+[package]
+name = "xfce4-profile-editor-helper"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+license = "GPL-2.0-or-later"
+description = "Privileged helper boundary for Xfce Profile Editor"
+publish = false
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.145"
+thiserror = "2.0.21"
+xfce4-profile-data = { path = "../profile-data" }

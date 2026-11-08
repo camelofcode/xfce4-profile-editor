@@ -90,6 +90,14 @@ distribution packaging without changing the source layout.
 ├── Cargo.toml
 ├── build.rs
 ├── resources.gresource.xml
+├── crates/
+│   ├── profile-data/
+│   │   └── src/lib.rs
+│   └── profile-helper/
+│       ├── Cargo.toml
+│       └── src/
+│           ├── lib.rs
+│           └── main.rs
 ├── data/
 │   ├── icons/
 │   ├── polkit/
@@ -125,6 +133,9 @@ hierarchy, spacing, labels, accessibility relationships, menus, and actions
 belong in `.ui` files. Rust UI modules bind template children, connect signals,
 translate core results into presentation state, and manage window lifecycles.
 All system interaction and data transformation belongs in `src/core/`.
+Lossless GECOS data rules shared across the privilege boundary belong in
+`crates/profile-data/`; the GTK-free privileged boundary belongs in
+`crates/profile-helper/`.
 
 Dependency direction is always `ui -> core`. Core modules must not import GTK
 or GDK types and must expose plain Rust data and typed errors.
@@ -439,7 +450,6 @@ These decisions should be made before the relevant implementation phase, not
 guessed during scaffolding:
 
 - supported distribution/version matrix beyond Fedora;
-- the reviewed privileged-helper protocol and Polkit defaults;
 - whether a future Xfce contribution requires a Meson wrapper or other naming
   changes.
 

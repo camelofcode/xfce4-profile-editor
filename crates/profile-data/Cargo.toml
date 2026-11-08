@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+[package]
+name = "xfce4-profile-data"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+license = "GPL-2.0-or-later"
+description = "Shared profile data rules for Xfce Profile Editor"
+publish = false
+
+[dependencies]
+thiserror = "2.0.21"

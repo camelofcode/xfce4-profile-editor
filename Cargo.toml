@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+[workspace]
+members = ["crates/profile-data", "crates/profile-helper"]
+resolver = "3"
+
 [package]
 name = "xfce4-profile-editor"
 version = "0.1.0"
@@ -13,6 +17,7 @@ repository = "https://github.com/camelofcode/xfce4-profile-editor"
 gtk = { package = "gtk4", version = "0.11.5", features = ["v4_10", "xml_validation"] }
 rustix = { version = "1.1.6", features = ["process"] }
 thiserror = "2.0.21"
+xfce4-profile-data = { path = "crates/profile-data" }
 zbus = { version = "6.2.1", default-features = false, features = ["default-rt", "proxy"] }
 
 [build-dependencies]
