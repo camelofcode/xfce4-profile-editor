@@ -130,11 +130,13 @@ translation catalogs. There must not be a second Make-based install path.
 │   ├── core/
 │   │   ├── account_service.rs
 │   │   ├── camera.rs
+│   │   ├── email_persistence.rs
 │   │   ├── gecos.rs
 │   │   ├── gecos_helper.rs
 │   │   ├── gecos_persistence.rs
 │   │   ├── image.rs
 │   │   ├── profile.rs
+│   │   ├── profile_persistence.rs
 │   │   └── profile_store.rs
 │   └── ui/
 │       ├── mod.rs

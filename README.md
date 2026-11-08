@@ -8,9 +8,9 @@ Its working name reflects the desktop it is intended to integrate with.
 
 ## Status
 
-The repository is under phased development. Profile reads and the narrowly
-scoped GECOS persistence path are implemented; image, email, and camera writes
-remain later phases. See
+The repository is under phased development. Profile reads, the narrowly
+scoped GECOS persistence path, and AccountsService email writes are
+implemented; image and camera writes remain later phases. See
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the agreed scope,
 architecture, implementation phases, and acceptance criteria. See
 [PROGRESS.md](PROGRESS.md) for the current implementation and handoff status.

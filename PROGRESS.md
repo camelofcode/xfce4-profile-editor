@@ -10,9 +10,9 @@ completed and what should happen next.
 ## Current position
 
 - Active branch: `main`
-- Last completed phase: Phase 2 — profile reads
-- Next phase: Phase 3 — safe persistence
-- Last approved commit before this checkpoint: `73367f7` (`Add application helper client`)
+- Last completed phase: Phase 3 — safe persistence
+- Next phase: Phase 4 — image selection
+- Last approved commit before this checkpoint: `74b6429` (`Add interactive GECOS persistence`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
@@ -27,9 +27,10 @@ completed and what should happen next.
   tests
 - Completed checkpoint: Phase 3f application-side privileged-helper client
 - Completed checkpoint: Phase 3g interactive GECOS persistence
-- Next checkpoint: Phase 3h AccountsService email persistence
+- Completed checkpoint: Phase 3h AccountsService email persistence
+- Next checkpoint: Phase 4a image validation and normalisation core
 - Work awaiting review: none
-- Expected repository state: clean after the approved Phase 3g commit
+- Expected repository state: clean after the approved Phase 3h commit
 
 ## Completed
 
@@ -208,6 +209,34 @@ the developer account.
 Phase 3g was manually approved on 2026-11-08. The installed application
 successfully accumulated the complete form, requested elevation only when the
 form was closed, and saved the combined GECOS update as intended.
+
+The Phase 3h checkpoint adds conservative email validation and writes the
+current user's email through AccountsService `SetEmail`. The installed Fedora
+AccountsService interface assigns own-email changes to
+`org.freedesktop.accounts.change-own-user-data`; its local active-session
+policy is `allow_active=yes`, so this machine should not display an elevation
+prompt for email-only changes. Permission and service failures remain typed
+and recoverable for systems with different policy.
+
+The close-time transaction is coordinated in GTK-free core code. It validates
+every changed value before writing, applies GECOS first, and attempts email
+only after GECOS succeeds. If email then fails, the confirmed GECOS snapshot is
+retained and a retry writes only email. When AccountsService was unavailable
+during loading, email remains read-only. Tests use injected functions and a
+fake email client; they never call the live D-Bus method or change account
+data.
+
+Phase 3h automated verification passes with 50 workspace tests, Clippy
+warnings denied, updated gettext extraction, template and policy XML
+validation, a display-backed window construction test, and a Meson development
+build in responsive mode.
+
+Manual testing confirmed that email changes persist without an elevation
+prompt. It also found that leaving an untouched field incorrectly displayed
+the unsaved-changes status. The clean-state path now restores the original
+load warning or hides the status when no warning exists; this minor UI fix is
+manually confirmed. Phase 3h and the complete Phase 3 safe-persistence flow
+were approved on 2026-11-08.
 
 The build-ergonomics checkpoint was manually approved on 2026-11-08. Its
 project skill detects CPU and memory before compile-heavy work. This netbook

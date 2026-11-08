@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use super::account_service::{AccountDetails, AccountsSource, SystemAccountsSource};
+use super::email_persistence::EmailState;
 use super::gecos_persistence::GecosState;
 use super::profile::{Avatar, AvatarSource, Profile, split_full_name};
 use super::user::{NssUserSource, UserLookupError, UserRecord, UserSource};
@@ -18,6 +19,7 @@ pub(crate) struct LoadedProfile {
     pub(crate) profile: Profile,
     pub(crate) warnings: Vec<LoadWarning>,
     pub(crate) gecos_state: GecosState,
+    pub(crate) email_state: Option<EmailState>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -73,11 +75,11 @@ impl<U: UserSource, A: AccountsSource> ProfileStore<U, A> {
     fn load(&self) -> Result<LoadedProfile, ProfileLoadError> {
         let user = self.users.current_user()?;
         let mut warnings = Vec::new();
-        let account = match self.accounts.details_for_uid(user.uid) {
-            Ok(details) => details,
+        let (account, accounts_available) = match self.accounts.details_for_uid(user.uid) {
+            Ok(details) => (details, true),
             Err(error) => {
                 warnings.push(LoadWarning::AccountsServiceUnavailable(error.to_string()));
-                AccountDetails::default()
+                (AccountDetails::default(), false)
             }
         };
 
@@ -92,11 +94,13 @@ impl<U: UserSource, A: AccountsSource> ProfileStore<U, A> {
             avatars,
         };
         let gecos_state = GecosState::new(user.gecos, &profile);
+        let email_state = accounts_available.then(|| EmailState::new(user.uid, &profile.email));
 
         Ok(LoadedProfile {
             profile,
             warnings,
             gecos_state,
+            email_state,
         })
     }
 }
@@ -215,6 +219,12 @@ mod tests {
         assert_eq!(loaded.profile.office_phone, "0123");
         assert_eq!(loaded.profile.home_phone, "0456");
         assert_eq!(loaded.profile.email, "ada@example.test");
+        assert!(
+            loaded
+                .email_state
+                .as_ref()
+                .is_some_and(|state| state.matches("ada@example.test"))
+        );
         assert!(loaded.warnings.is_empty());
     }
 
@@ -226,6 +236,7 @@ mod tests {
 
         assert_eq!(loaded.profile.first_name, "Ada");
         assert!(loaded.profile.email.is_empty());
+        assert!(loaded.email_state.is_none());
         assert!(matches!(
             loaded.warnings.as_slice(),
             [LoadWarning::AccountsServiceUnavailable(_)]

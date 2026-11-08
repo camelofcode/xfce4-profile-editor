@@ -114,13 +114,12 @@ fn save_with(
     fields: GecosFields,
 ) -> Result<GecosSaveOutcome, GecosWriteError> {
     let fields = fields.normalized();
-    let update = fields.update();
-    update.validate()?;
-
     if state.fields == fields {
         return Ok(GecosSaveOutcome::Unchanged { state, fields });
     }
 
+    let update = fields.update();
+    update.validate()?;
     let change = GecosChange {
         expected_gecos: state.snapshot.to_string(),
         full_name: update.full_name.clone(),
