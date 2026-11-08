@@ -2,10 +2,11 @@
 
 //! AccountsService access for the current profile.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use thiserror::Error;
-use zbus::{Connection, OwnedObjectPath, proxy};
+use zbus::proxy::MethodFlags;
+use zbus::{Connection, DynamicTuple, OwnedObjectPath, Proxy, proxy};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub(crate) struct AccountDetails {
@@ -19,6 +20,10 @@ pub(crate) trait AccountsSource {
 
 pub(super) trait EmailClient {
     fn set_email(&self, uid: u32, email: &str) -> Result<(), AccountsError>;
+}
+
+pub(super) trait IconClient {
+    fn set_icon_file(&self, uid: u32, path: &Path) -> Result<(), AccountsError>;
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -36,6 +41,13 @@ impl EmailClient for SystemAccountsSource {
     }
 }
 
+impl IconClient for SystemAccountsSource {
+    fn set_icon_file(&self, uid: u32, path: &Path) -> Result<(), AccountsError> {
+        let path = path.to_str().ok_or_else(AccountsError::invalid_icon_path)?;
+        zbus::block_on(set_icon_file(uid, path)).map_err(AccountsError::dbus)
+    }
+}
+
 #[derive(Debug, Error)]
 #[error("AccountsService failed: {message}")]
 pub(crate) struct AccountsError {
@@ -46,6 +58,12 @@ impl AccountsError {
     fn dbus(error: zbus::Error) -> Self {
         Self {
             message: error.to_string(),
+        }
+    }
+
+    fn invalid_icon_path() -> Self {
+        Self {
+            message: "the icon path is not valid UTF-8".to_owned(),
         }
     }
 
@@ -89,6 +107,27 @@ async fn set_email(uid: u32, email: &str) -> zbus::Result<()> {
         .build()
         .await?;
     user.set_email(email).await
+}
+
+async fn set_icon_file(uid: u32, icon_file: &str) -> zbus::Result<()> {
+    let connection = Connection::system().await?;
+    let accounts = AccountsProxy::new(&connection).await?;
+    let path = accounts.find_user_by_id(i64::from(uid)).await?;
+    let user = Proxy::new(
+        &connection,
+        "org.freedesktop.Accounts",
+        path,
+        "org.freedesktop.Accounts.User",
+    )
+    .await?;
+    let _: Option<()> = user
+        .call_with_flags(
+            "SetIconFile",
+            MethodFlags::ALLOW_INTERACTIVE_AUTH,
+            &DynamicTuple((icon_file,)),
+        )
+        .await?;
+    Ok(())
 }
 
 async fn load_details(uid: u32) -> zbus::Result<AccountDetails> {

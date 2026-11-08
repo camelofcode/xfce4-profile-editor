@@ -12,8 +12,8 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 3 — safe persistence
 - Next phase: Phase 4 — image selection
-- Last approved commit before this checkpoint: `18c3854` (`Add bounded avatar
-  image normalisation`)
+- Last approved commit before this checkpoint: `a5056a0` (`Add profile image
+  selection preview`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
@@ -31,9 +31,10 @@ completed and what should happen next.
 - Completed checkpoint: Phase 3h AccountsService email persistence
 - Completed checkpoint: Phase 4a — image validation and normalisation core
 - Completed checkpoint: Phase 4b — asynchronous image selection and preview
-- Next checkpoint: Phase 4c — atomic image persistence and AccountsService update
+- Completed checkpoint: Phase 4c — atomic image persistence and AccountsService update
+- Next checkpoint: Phase 4d — profile-image removal
 - Work awaiting review: none
-- Expected repository state: clean after the approved Phase 4b commit
+- Expected repository state: clean after the approved Phase 4c commit
 
 ## Completed
 
@@ -331,6 +332,25 @@ preview, and error-free interaction. The release build produced the preview
 immediately; the roughly five-second debug-build delay was compiler
 optimisation rather than a release-runtime issue. Phase 4b was approved on
 2026-11-08.
+
+Phase 4c is implemented and awaiting manual review. Choosing a photo now runs
+one GTK-free core operation on the blocking worker: it normalises the source,
+writes a uniquely created temporary file beside `~/.face`, synchronises it,
+sets mode `0644`, and atomically renames it into place. It then calls
+AccountsService `SetIconFile` for the loaded UID with the stable `.face` path
+and D-Bus interactive authorization enabled. The preview changes only after a
+confirmed local write. AccountsService failure is represented as partial
+success, retaining the confirmed local image and showing a translated warning
+with the service diagnostic.
+
+Three focused tests use temporary homes and an injected icon client. They
+prove atomic replacement and permissions, the stable AccountsService path,
+partial service failure, and that invalid input neither changes `.face` nor
+calls the service. Clippy passes with warnings denied, the full workspace suite
+passes with 61 tests, gettext extraction is current, and the core boundary
+search finds no GTK/GDK imports. Manual release testing confirmed immediate
+normalisation, persistence across reopening, and the updated Whisker Menu
+image. Phase 4c was approved on 2026-11-08.
 
 ## Resuming on another machine
 

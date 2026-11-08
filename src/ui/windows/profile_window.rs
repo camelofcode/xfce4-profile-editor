@@ -9,10 +9,10 @@ use gtk::subclass::prelude::*;
 use gtk::{gio, glib};
 
 use crate::core::{
-    EmailState, EmailWriteError, GecosFields, GecosState, GecosWriteError, LoadWarning,
-    LoadedProfile, Profile, ProfileSaveError, ProfileSaveOutcome, ProfileSaveRequest, ProfileStore,
-    SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES, normalise_avatar_file,
-    save_current_profile,
+    AvatarSaveError, AvatarSaveOutcome, EmailState, EmailWriteError, GecosFields, GecosState,
+    GecosWriteError, LoadWarning, LoadedProfile, Profile, ProfileSaveError, ProfileSaveOutcome,
+    ProfileSaveRequest, ProfileStore, SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES,
+    save_current_avatar, save_current_profile,
 };
 
 const VALIDATION_DEBOUNCE: Duration = Duration::from_millis(500);
@@ -258,7 +258,7 @@ impl ProfileWindow {
                         return;
                     };
                     if let Some(path) = file.path() {
-                        window.prepare_photo_preview(path);
+                        window.save_selected_photo(path);
                     } else {
                         window.finish_image_selection();
                         window.show_save_status(
@@ -286,36 +286,43 @@ impl ProfileWindow {
         });
     }
 
-    fn prepare_photo_preview(&self, path: std::path::PathBuf) {
-        self.show_save_status(&gettext("Preparing photo preview…"), false, None);
-        let worker_path = path.clone();
+    fn save_selected_photo(&self, path: std::path::PathBuf) {
+        self.show_save_status(&gettext("Saving profile image…"), false, None);
         let weak_window = self.downgrade();
         glib::spawn_future_local(async move {
-            let result = gio::spawn_blocking(move || normalise_avatar_file(&worker_path)).await;
+            let result = gio::spawn_blocking(move || save_current_avatar(path)).await;
             let Some(window) = weak_window.upgrade() else {
                 return;
             };
             window.finish_image_selection();
-            match result {
-                Ok(Ok(png)) => window.show_photo_preview(path, png),
-                Ok(Err(error)) => {
-                    let diagnostic = error.to_string();
-                    window.show_save_status(
-                        &gettext("The selected image could not be used."),
-                        true,
-                        Some(&diagnostic),
-                    );
-                }
-                Err(_) => window.show_save_status(
-                    &gettext("Photo preview stopped unexpectedly."),
-                    true,
-                    None,
-                ),
-            }
+            window.finish_avatar_save_result(result);
         });
     }
 
-    fn show_photo_preview(&self, path: std::path::PathBuf, png: Vec<u8>) {
+    fn finish_avatar_save_result(
+        &self,
+        result: Result<Result<AvatarSaveOutcome, AvatarSaveError>, Box<dyn std::any::Any + Send>>,
+    ) {
+        match result {
+            Ok(Ok(outcome)) => self.show_saved_avatar(outcome),
+            Ok(Err(error)) => {
+                let diagnostic = error.to_string();
+                self.show_save_status(
+                    &localized_avatar_save_error(&error),
+                    true,
+                    Some(&diagnostic),
+                );
+            }
+            Err(_) => self.show_save_status(
+                &gettext("Profile image saving stopped unexpectedly."),
+                true,
+                None,
+            ),
+        }
+    }
+
+    fn show_saved_avatar(&self, outcome: AvatarSaveOutcome) {
+        let (png, path, accounts_error) = outcome.into_parts();
         let bytes = glib::Bytes::from_owned(png);
         match gtk::gdk::Texture::from_bytes(&bytes) {
             Ok(texture) => {
@@ -327,7 +334,18 @@ impl ProfileWindow {
                     path.display()
                 )));
                 imp.avatar_picture.set_visible(true);
-                self.show_save_status(&gettext("Photo preview updated."), false, None);
+                match accounts_error {
+                    Some(error) => {
+                        let diagnostic = error.to_string();
+                        self.show_warning_status(
+                            &gettext(
+                                "The profile image was saved locally, but AccountsService could not be updated.",
+                            ),
+                            Some(&diagnostic),
+                        );
+                    }
+                    None => self.show_save_status(&gettext("Profile image saved."), false, None),
+                }
             }
             Err(error) => {
                 let diagnostic = error.to_string();
@@ -585,6 +603,17 @@ impl ProfileWindow {
         label.set_visible(true);
     }
 
+    fn show_warning_status(&self, message: &str, diagnostic: Option<&str>) {
+        let label = &self.imp().status_label;
+        label.remove_css_class("dim-label");
+        label.remove_css_class("warning");
+        label.remove_css_class("error");
+        label.add_css_class("warning");
+        label.set_label(message);
+        label.set_tooltip_text(diagnostic);
+        label.set_visible(true);
+    }
+
     fn show_load_error(&self, message: &str) {
         let imp = self.imp();
         imp.loading_indicator.set_spinning(false);
@@ -600,6 +629,16 @@ fn dialog_error_is_cancellation(error: &glib::Error) -> bool {
     error.matches(gtk::DialogError::Cancelled)
         || error.matches(gtk::DialogError::Dismissed)
         || error.matches(gio::IOErrorEnum::Cancelled)
+}
+
+fn localized_avatar_save_error(error: &AvatarSaveError) -> String {
+    match error {
+        AvatarSaveError::Image(_) => gettext("The selected image could not be used."),
+        AvatarSaveError::User(_) => {
+            gettext("The current user account could not be read. The profile image was not saved.")
+        }
+        AvatarSaveError::Local(_) => gettext("The profile image could not be saved."),
+    }
 }
 
 fn localized_gecos_write_error(error: &GecosWriteError) -> String {

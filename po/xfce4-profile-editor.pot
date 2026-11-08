@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xfce4-profile-editor\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-08 22:54+0000\n"
+"POT-Creation-Date: 2026-11-08 23:11+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -86,128 +86,143 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:172
+#: src/ui/windows/profile_window.rs:173
 msgid "The current user account could not be read."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:174
+#: src/ui/windows/profile_window.rs:175
 msgid "Profile loading stopped unexpectedly."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:210
+#: src/ui/windows/profile_window.rs:211
 msgid "Profile image"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:236
+#: src/ui/windows/profile_window.rs:237
 msgid "Images"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:246
+#: src/ui/windows/profile_window.rs:247
 msgid "Choose a profile image"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:264
+#: src/ui/windows/profile_window.rs:265
 msgid "Only local image files can be used."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:278
+#: src/ui/windows/profile_window.rs:279
 msgid "The image chooser could not be opened."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:289
-msgid "Preparing photo preview…"
+#: src/ui/windows/profile_window.rs:290
+msgid "Saving profile image…"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:303
-msgid "The selected image could not be used."
+#: src/ui/windows/profile_window.rs:317
+msgid "Profile image saving stopped unexpectedly."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:309
-msgid "Photo preview stopped unexpectedly."
-msgstr ""
-
-#: src/ui/windows/profile_window.rs:325
+#: src/ui/windows/profile_window.rs:333
 msgid "Selected photo"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:329
-msgid "Photo preview updated."
+#: src/ui/windows/profile_window.rs:342
+msgid ""
+"The profile image was saved locally, but AccountsService could not be "
+"updated."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:334
+#: src/ui/windows/profile_window.rs:347
+msgid "Profile image saved."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:353
 msgid "The photo preview could not be displayed."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:426
+#: src/ui/windows/profile_window.rs:445
 msgid "A name or phone number is not valid."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:438
+#: src/ui/windows/profile_window.rs:457
 msgid "The email address is not valid."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:445
+#: src/ui/windows/profile_window.rs:464
 msgid "Unsaved profile changes."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:472
+#: src/ui/windows/profile_window.rs:491
 msgid "Saving profile…"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:518
+#: src/ui/windows/profile_window.rs:537
 msgid "Profile saving stopped unexpectedly."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:530
+#: src/ui/windows/profile_window.rs:549
 msgid "Profile saved."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:607
+#: src/ui/windows/profile_window.rs:636
+msgid "The selected image could not be used."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:638
+msgid ""
+"The current user account could not be read. The profile image was not saved."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:640
+msgid "The profile image could not be saved."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:647
 msgid "A name or phone number is not valid. Your changes were not saved."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:610
+#: src/ui/windows/profile_window.rs:650
 msgid "Authentication was cancelled. Your changes were not saved."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:613
+#: src/ui/windows/profile_window.rs:653
 msgid "Authorization was denied. Your changes were not saved."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:616
+#: src/ui/windows/profile_window.rs:656
 msgid ""
 "The account changed after it was loaded. Reopen the profile editor and try "
 "again."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:619
+#: src/ui/windows/profile_window.rs:659
 msgid "This account is not stored locally and cannot be changed here."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:622
+#: src/ui/windows/profile_window.rs:662
 msgid "The local account record is ambiguous and was not changed."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:624
+#: src/ui/windows/profile_window.rs:664
 msgid "The profile could not be saved. Your changes are still in the form."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:631
+#: src/ui/windows/profile_window.rs:671
 msgid "The email address is not valid. Your changes were not saved."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:634
+#: src/ui/windows/profile_window.rs:674
 msgid "The email address could not be saved. It is still in the form."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:657
+#: src/ui/windows/profile_window.rs:697
 msgid "Some profile information could not be loaded."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:670
+#: src/ui/windows/profile_window.rs:710
 msgid "AccountsService profile information could not be read."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:674
+#: src/ui/windows/profile_window.rs:714
 msgid "A profile image could not be used."
 msgstr ""

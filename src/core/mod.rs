@@ -3,6 +3,7 @@
 //! GTK-independent profile models and system services.
 
 mod account_service;
+mod avatar_persistence;
 mod email_persistence;
 mod gecos;
 mod gecos_helper;
@@ -13,12 +14,11 @@ mod profile_persistence;
 mod profile_store;
 mod user;
 
+pub(crate) use avatar_persistence::{AvatarSaveError, AvatarSaveOutcome, save_current_avatar};
 pub(crate) use email_persistence::{EmailState, EmailWriteError};
 pub(crate) use gecos_helper::GecosWriteError;
 pub(crate) use gecos_persistence::{GecosFields, GecosState};
-pub(crate) use image::{
-    SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES, normalise_avatar_file,
-};
+pub(crate) use image::{SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES};
 pub(crate) use profile::Profile;
 pub(crate) use profile_persistence::{
     ProfileSaveError, ProfileSaveOutcome, ProfileSaveRequest, save_current_profile,
