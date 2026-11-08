@@ -12,7 +12,7 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 2 — profile reads
 - Next phase: Phase 3 — safe persistence
-- Last approved commit before this checkpoint: `f58b2ca` (`Add resource-aware build policy`)
+- Last approved commit before this checkpoint: `09f16b8` (`Add repeatable developer workflow`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
@@ -23,9 +23,12 @@ completed and what should happen next.
 - Completed checkpoint: repeatable manual build, stage, install, and launch
   workflow
 - Completed checkpoint: Phase 3e system installation and application launch
-- Next checkpoint: Phase 3e safe Polkit prompt test with a stale request
-- Expected repository state after the developer-workflow commit: clean and
-  pushed
+- Completed checkpoint: Phase 3e Polkit denial and authenticated stale-request
+  tests
+- Next checkpoint: Phase 3f application-side persistence plumbing
+- Work awaiting review: Phase 3e verification record
+- Expected repository state: the progress update is deliberately uncommitted
+  until manual approval
 
 ## Completed
 
@@ -152,9 +155,21 @@ The rendered policy retains the gettext domain and binds the action to the
 absolute `/usr/libexec/xfce4-profile-editor-helper` path. The helper still has
 no GTK dependency.
 
-The next manual checkpoint may install the same three files under `/usr` with
-explicit approval and exercise the standard Polkit prompt using a deliberately
-stale request that cannot reach `usermod`.
+Phase 3e was completed on 2026-11-08. The installed application, helper, and
+policy exactly matched their staged artifacts. The action was registered with
+`allow_active=auth_admin`, the absolute helper path, and the exact
+`update-gecos` first argument. Dismissing the Xfce Polkit dialog produced
+`pkexec` status 127 and left the passwd record unchanged. Approving the dialog
+then produced helper status 3 and the structured response:
+
+```json
+{"status":"error","kind":"stale_data","message":"the account changed after it was loaded"}
+```
+
+The current profile values were supplied as the proposed values for defence in
+depth, the deliberately incorrect `expected_gecos` value prevented the command
+boundary from being reached, and the exact passwd record was unchanged after
+both tests.
 
 The build-ergonomics checkpoint was manually approved on 2026-11-08. Its
 project skill detects CPU and memory before compile-heavy work. This netbook
@@ -174,7 +189,7 @@ compilation and Meson metadata never run as root. The script does not invoke
 the privileged helper or change account data. The system installation and
 installed application launch were manually verified on the same date. The
 installed policy has the expected gettext domain and absolute helper binding;
-the safe Polkit prompt test remains deliberately separate.
+the safe Polkit prompt test was completed separately as Phase 3e.
 
 Phase 3c verification passed with 28 tests:
 
