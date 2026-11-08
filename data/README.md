@@ -22,6 +22,11 @@ release binaries, installs them into this layout, and renders the policy with
 the configured absolute `libexecdir` without writing outside the staging
 directory.
 
+Developers can run `scripts/build-install-launch.sh stage` for that safe staged
+workflow. Its explicit `install` command copies only the verified application,
+helper, and policy with `sudo install`; Meson and Cargo continue to run as the
+unprivileged developer.
+
 The installed policy declares the `xfce4-profile-editor` gettext domain so the
 system Polkit agent can translate its description and authentication message.
 The matching extraction markers in `po/polkit-messages.rs` are kept in sync by

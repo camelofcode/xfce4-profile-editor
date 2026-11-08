@@ -120,6 +120,8 @@ translation catalogs. There must not be a second Make-based install path.
 │   ├── POTFILES.in
 │   ├── meson.build
 │   └── xfce4-profile-editor.pot
+├── scripts/
+│   └── build-install-launch.sh
 ├── src/
 │   ├── config.rs
 │   ├── i18n.rs

@@ -52,6 +52,10 @@ resource scheduling, not which required checks are eventually run.
   formatting, linting, and tests.
 - Direct Cargo and Meson builds share the workspace `target/` cache. Do not
   create duplicate dependency caches without a demonstrated isolation need.
+- `scripts/build-install-launch.sh` is the supported repeatable manual workflow
+  for development builds, staged installs, explicit system installs, and
+  launches. Keep system mutation behind its explicit `install` and `cycle`
+  commands, and never compile as root.
 
 If a responsibility does not fit these boundaries, stop and make the ownership
 decision explicit before implementing it. Do not hide cross-layer behaviour in

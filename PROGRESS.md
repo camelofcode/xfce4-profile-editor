@@ -12,7 +12,7 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 2 — profile reads
 - Next phase: Phase 3 — safe persistence
-- Last approved commit before this checkpoint: `b3ff2b3` (`Adopt Meson and gettext foundation`)
+- Last approved commit before this checkpoint: `f58b2ca` (`Add resource-aware build policy`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
@@ -20,9 +20,12 @@ completed and what should happen next.
   non-root staged installation
 - Completed checkpoint: resource-aware build policy and shared Cargo/Meson
   compilation cache
-- Next checkpoint: Phase 3e — explicitly approved system installation and safe
-  Polkit prompt test
-- Expected repository state after the build-ergonomics commit: clean and pushed
+- Completed checkpoint: repeatable manual build, stage, install, and launch
+  workflow
+- Completed checkpoint: Phase 3e system installation and application launch
+- Next checkpoint: Phase 3e safe Polkit prompt test with a stale request
+- Expected repository state after the developer-workflow commit: clean and
+  pushed
 
 ## Completed
 
@@ -162,6 +165,16 @@ script also avoids rewriting unchanged generated CSS, eliminating a
 self-triggered rebuild loop: an unchanged warm Meson release build fell from
 about 23 seconds to 0.12 seconds. Clippy and all 29 tests pass in responsive
 mode.
+
+The developer-workflow checkpoint was manually approved on 2026-11-08. It adds
+`scripts/build-install-launch.sh`. Its safe `build` and `stage` commands never
+request elevation. Explicit `install` and `cycle` commands stage and verify the
+release before using `sudo install` to copy only the three verified files, so
+compilation and Meson metadata never run as root. The script does not invoke
+the privileged helper or change account data. The system installation and
+installed application launch were manually verified on the same date. The
+installed policy has the expected gettext domain and absolute helper binding;
+the safe Polkit prompt test remains deliberately separate.
 
 Phase 3c verification passed with 28 tests:
 

@@ -44,6 +44,22 @@ meson compile -C target/meson-build
 target/meson-build/src/xfce4-profile-editor
 ```
 
+The repeatable developer workflow is also available through one script:
+
+```sh
+scripts/build-install-launch.sh build
+scripts/build-install-launch.sh stage
+scripts/build-install-launch.sh install
+scripts/build-install-launch.sh launch
+```
+
+`build` and `stage` never request elevation. `install` stages and verifies the
+release first, then uses `sudo install` to copy only the three verified files;
+compilation and Meson metadata therefore remain unprivileged. `cycle` performs
+the explicit install followed by launch. The script adapts compiler
+parallelism to the current machine and never invokes the privileged profile
+helper or changes account data.
+
 Stage the native installation layout without root access with:
 
 ```sh
