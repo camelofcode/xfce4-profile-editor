@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xfce4-profile-editor\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-08 01:25+0000\n"
+"POT-Creation-Date: 2026-11-08 22:17+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -70,26 +70,76 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:97
+#: src/ui/windows/profile_window.rs:154
 msgid "The current user account could not be read."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:99
+#: src/ui/windows/profile_window.rs:156
 msgid "Profile loading stopped unexpectedly."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:124
+#: src/ui/windows/profile_window.rs:188
 msgid "Profile image"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:160
+#: src/ui/windows/profile_window.rs:261
+msgid "Unsaved profile changes."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:265
+msgid "A name or phone number is not valid."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:292
+msgid "Saving profile…"
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:318
+msgid "Profile saved."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:335
+msgid "Profile saving stopped unexpectedly."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:382
+msgid "A name or phone number is not valid. Your changes were not saved."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:385
+msgid "Authentication was cancelled. Your changes were not saved."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:388
+msgid "Authorization was denied. Your changes were not saved."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:391
+msgid ""
+"The account changed after it was loaded. Reopen the profile editor and try "
+"again."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:394
+msgid "This account is not stored locally and cannot be changed here."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:397
+msgid "The local account record is ambiguous and was not changed."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:399
+msgid "The profile could not be saved. Your changes are still in the form."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:411
 msgid "Some profile information could not be loaded."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:173
+#: src/ui/windows/profile_window.rs:424
 msgid "AccountsService profile information could not be read."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:177
+#: src/ui/windows/profile_window.rs:428
 msgid "A profile image could not be used."
 msgstr ""

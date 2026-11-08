@@ -30,8 +30,8 @@ project namespace is finalised.
 - Edit first name and last name as the GECOS full-name value.
 - Edit office and home phone numbers in their standard GECOS fields.
 - Edit the email address exposed by AccountsService.
-- Provide immediate-update behaviour, with Help and Close buttons rather than
-  Save and Cancel.
+- Provide a buttonless edit flow, with Help and Close buttons rather than Save
+  and Cancel.
 - Work under X11 and Wayland in an Xfce session.
 
 ### Out of scope
@@ -132,6 +132,7 @@ translation catalogs. There must not be a second Make-based install path.
 │   │   ├── camera.rs
 │   │   ├── gecos.rs
 │   │   ├── gecos_helper.rs
+│   │   ├── gecos_persistence.rs
 │   │   ├── image.rs
 │   │   ├── profile.rs
 │   │   └── profile_store.rs
@@ -257,12 +258,14 @@ Activating the image opens a popover with Choose Photo, Take Photo, and Remove
 Photo. Take Photo is disabled or hidden when camera support is not compiled or
 no camera is available.
 
-There is no Save or Cancel button. Editing follows immediate-update semantics:
+There is no Save or Cancel button. Editing follows a single form-transaction
+model so a privileged GECOS write does not request elevation for every field:
 
 - mark text fields dirty while typing;
-- validate after a short idle debounce;
-- commit on focus loss or Enter;
-- coalesce related GECOS changes into one privileged operation;
+- validate after a short idle debounce and on focus loss;
+- use Enter to advance through the form without writing;
+- coalesce all related GECOS changes into one privileged operation when the
+  user closes the form;
 - show Saving, Saved, and error states without blocking the main loop;
 - on Close, flush pending valid changes and wait for active writes;
 - keep the window open when a write fails so the user can retry or explicitly

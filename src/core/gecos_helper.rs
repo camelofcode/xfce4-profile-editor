@@ -48,7 +48,7 @@ impl GecosChange {
 }
 
 #[derive(Debug, Error)]
-pub(super) enum GecosWriteError {
+pub(crate) enum GecosWriteError {
     #[error(transparent)]
     Validation(#[from] ValidationError),
     #[error("authentication was cancelled")]
@@ -92,7 +92,7 @@ pub(super) enum GecosWriteError {
 }
 
 #[derive(Debug, Error)]
-pub(super) enum HelperTransportError {
+pub(crate) enum HelperTransportError {
     #[error("could not start pkexec: {0}")]
     Start(#[source] io::Error),
     #[error("pkexec did not expose its {0} pipe")]
@@ -120,6 +120,10 @@ pub(super) struct ProcessOutput {
 
 pub(super) trait HelperRunner {
     fn run(&self, request: &[u8]) -> Result<ProcessOutput, HelperTransportError>;
+}
+
+pub(super) trait GecosClient {
+    fn update(&self, change: &GecosChange) -> Result<(), GecosWriteError>;
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -195,6 +199,7 @@ impl Default for GecosHelperClient {
 }
 
 impl<R: HelperRunner> GecosHelperClient<R> {
+    #[cfg(test)]
     fn new(runner: R) -> Self {
         Self { runner }
     }
@@ -208,6 +213,12 @@ impl<R: HelperRunner> GecosHelperClient<R> {
         }
         let output = self.runner.run(&request)?;
         map_output(output)
+    }
+}
+
+impl<R: HelperRunner> GecosClient for GecosHelperClient<R> {
+    fn update(&self, change: &GecosChange) -> Result<(), GecosWriteError> {
+        Self::update(self, change)
     }
 }
 

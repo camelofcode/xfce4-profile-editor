@@ -4,13 +4,13 @@
 
 mod account_service;
 mod gecos;
-// The production client is intentionally connected to the UI in the next
-// checkpoint; this checkpoint verifies its isolated process boundary first.
-#[allow(dead_code)]
 mod gecos_helper;
+mod gecos_persistence;
 mod profile;
 mod profile_store;
 mod user;
 
+pub(crate) use gecos_helper::GecosWriteError;
+pub(crate) use gecos_persistence::{GecosFields, GecosSaveOutcome, GecosState, save_current_gecos};
 pub(crate) use profile::Profile;
 pub(crate) use profile_store::{LoadWarning, LoadedProfile, ProfileStore};

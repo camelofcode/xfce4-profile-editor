@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use super::account_service::{AccountDetails, AccountsSource, SystemAccountsSource};
+use super::gecos_persistence::GecosState;
 use super::profile::{Avatar, AvatarSource, Profile, split_full_name};
 use super::user::{NssUserSource, UserLookupError, UserRecord, UserSource};
 
@@ -16,6 +17,7 @@ type AvatarCandidate = (PathBuf, fn(PathBuf) -> AvatarSource);
 pub(crate) struct LoadedProfile {
     pub(crate) profile: Profile,
     pub(crate) warnings: Vec<LoadWarning>,
+    pub(crate) gecos_state: GecosState,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -89,8 +91,13 @@ impl<U: UserSource, A: AccountsSource> ProfileStore<U, A> {
             office_phone: user.gecos.office_phone().to_owned(),
             avatars,
         };
+        let gecos_state = GecosState::new(user.gecos, &profile);
 
-        Ok(LoadedProfile { profile, warnings })
+        Ok(LoadedProfile {
+            profile,
+            warnings,
+            gecos_state,
+        })
     }
 }
 

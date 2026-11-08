@@ -12,7 +12,7 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 2 — profile reads
 - Next phase: Phase 3 — safe persistence
-- Last approved commit before this checkpoint: `ee5a59e` (`Record Polkit integration verification`)
+- Last approved commit before this checkpoint: `73367f7` (`Add application helper client`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
@@ -25,10 +25,11 @@ completed and what should happen next.
 - Completed checkpoint: Phase 3e system installation and application launch
 - Completed checkpoint: Phase 3e Polkit denial and authenticated stale-request
   tests
-- Active checkpoint: Phase 3f application-side privileged-helper client
-- Work awaiting review: bounded helper invocation and typed outcome mapping
-- Expected repository state: the Phase 3f implementation and this progress
-  update are deliberately uncommitted until manual approval
+- Completed checkpoint: Phase 3f application-side privileged-helper client
+- Completed checkpoint: Phase 3g interactive GECOS persistence
+- Next checkpoint: Phase 3h AccountsService email persistence
+- Work awaiting review: none
+- Expected repository state: clean after the approved Phase 3g commit
 
 ## Completed
 
@@ -178,8 +179,35 @@ helper, and operation argument vector, drains bounded output, and maps Polkit
 and every helper response to typed core errors. Process execution is injected
 for tests: the 10 new client tests never start `pkexec`, display an
 authentication prompt, or touch account data. Clippy passes with warnings
-denied and all 39 workspace tests pass. Connecting this blocking boundary to
-profile state and the GTK coordinator remains a later checkpoint.
+denied and all 39 workspace tests pass. That checkpoint deliberately left the
+blocking boundary disconnected from profile state and GTK.
+
+Phase 3f was manually approved and committed on 2026-11-08. The Phase 3g
+checkpoint now retains the exact loaded GECOS representation alongside the
+displayed form, prepares a single combined name-and-phone update, and advances
+that snapshot only after confirmed helper success. The name and phone entries
+become editable after loading; short-idle and focus-loss validation do not
+request privilege, and Enter advances to the next field without writing. Only
+closing with unsaved changes starts the blocking helper client through
+`gio::spawn_blocking`, so the complete form produces at most one GECOS
+elevation request. The form remains open with its edits after validation,
+authentication, authorization, stale-data, or system failure. Name and phone
+inputs are temporarily locked during the write, and Close waits for success
+rather than discarding an edit. Email remains read-only for the separate
+AccountsService checkpoint.
+
+The Phase 3g automated checks pass with 42 workspace tests, Clippy warnings
+denied, a display-backed window construction test, template and policy XML
+validation, updated gettext extraction, and a Meson development build. Core
+tests prove that an unchanged form does not invoke the client, a changed form
+uses the exact loaded snapshot while preserving room/hidden/extra fields, and
+invalid input never starts the helper. The first successful real profile write
+is deliberately left for manual review because it displays Polkit and changes
+the developer account.
+
+Phase 3g was manually approved on 2026-11-08. The installed application
+successfully accumulated the complete form, requested elevation only when the
+form was closed, and saved the combined GECOS update as intended.
 
 The build-ergonomics checkpoint was manually approved on 2026-11-08. Its
 project skill detects CPU and memory before compile-heavy work. This netbook
