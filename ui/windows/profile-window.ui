@@ -1,22 +1,263 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- SPDX-License-Identifier: GPL-2.0-or-later -->
 <interface>
-  <requires lib="gtk" version="4.10" />
+  <requires lib="gtk" version="4.10"/>
   <template class="Xfce4ProfileEditorWindow" parent="GtkApplicationWindow">
-    <property name="default-height">560</property>
-    <property name="default-width">420</property>
+    <property name="default-height">600</property>
+    <property name="default-width">560</property>
     <property name="title" translatable="yes">Profile</property>
     <style>
-      <class name="profile-window" />
+      <class name="profile-window"/>
     </style>
     <property name="child">
-      <object class="GtkBox" id="profile_window_content">
-        <property name="margin-bottom">24</property>
-        <property name="margin-end">24</property>
-        <property name="margin-start">24</property>
-        <property name="margin-top">24</property>
+      <object class="GtkBox">
+        <property name="margin-bottom">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-start">6</property>
+        <property name="margin-top">6</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">12</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkFrame">
+            <property name="vexpand">true</property>
+            <style>
+              <class name="profile-content-frame"/>
+            </style>
+            <property name="child">
+              <object class="GtkScrolledWindow">
+                <property name="hscrollbar-policy">never</property>
+                <property name="propagate-natural-height">true</property>
+                <property name="vexpand">true</property>
+                <property name="child">
+                  <object class="GtkBox" id="profile_window_content">
+                    <property name="margin-bottom">18</property>
+                    <property name="margin-end">18</property>
+                    <property name="margin-start">18</property>
+                    <property name="margin-top">18</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">18</property>
+                    <child>
+                      <object class="GtkFrame">
+                        <property name="halign">center</property>
+                        <property name="height-request">144</property>
+                        <property name="width-request">144</property>
+                        <style>
+                          <class name="profile-avatar"/>
+                        </style>
+                        <property name="child">
+                          <object class="GtkOverlay">
+                            <property name="child">
+                              <object class="GtkImage" id="default_avatar">
+                                <property name="icon-name">avatar-default-symbolic</property>
+                                <property name="pixel-size">72</property>
+                                <property name="tooltip-text" translatable="yes">Default profile image</property>
+                              </object>
+                            </property>
+                            <child type="overlay">
+                              <object class="GtkPicture" id="avatar_picture">
+                                <property name="can-shrink">true</property>
+                                <property name="content-fit">cover</property>
+                                <property name="height-request">144</property>
+                                <property name="visible">false</property>
+                                <property name="width-request">144</property>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkGrid">
+                        <property name="column-spacing">18</property>
+                        <property name="row-spacing">12</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">_First name:</property>
+                            <property name="mnemonic-widget">first_name_entry</property>
+                            <property name="use-underline">true</property>
+                            <property name="valign">center</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="first_name_entry">
+                            <property name="editable">false</property>
+                            <property name="hexpand">true</property>
+                            <property name="width-chars">28</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">_Last name:</property>
+                            <property name="mnemonic-widget">last_name_entry</property>
+                            <property name="use-underline">true</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="last_name_entry">
+                            <property name="editable">false</property>
+                            <property name="hexpand">true</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">_Home phone:</property>
+                            <property name="mnemonic-widget">home_phone_entry</property>
+                            <property name="use-underline">true</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="home_phone_entry">
+                            <property name="editable">false</property>
+                            <property name="hexpand">true</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">2</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">_Email address:</property>
+                            <property name="mnemonic-widget">email_entry</property>
+                            <property name="use-underline">true</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">3</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="email_entry">
+                            <property name="editable">false</property>
+                            <property name="hexpand">true</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">3</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">_Office phone:</property>
+                            <property name="mnemonic-widget">office_phone_entry</property>
+                            <property name="use-underline">true</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">4</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="office_phone_entry">
+                            <property name="editable">false</property>
+                            <property name="hexpand">true</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">4</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">8</property>
+                        <child>
+                          <object class="GtkSpinner" id="loading_indicator">
+                            <property name="spinning">true</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="status_label">
+                            <property name="label" translatable="yes">Loading profile…</property>
+                            <property name="selectable">true</property>
+                            <property name="wrap">true</property>
+                            <property name="xalign">0</property>
+                            <style>
+                              <class name="dim-label"/>
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+              </object>
+            </property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="spacing">12</property>
+            <child>
+              <object class="GtkButton" id="help_button">
+                <property name="sensitive">false</property>
+                <property name="tooltip-text" translatable="yes">Help will be added in a later phase</property>
+                <property name="child">
+                  <object class="GtkBox">
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="icon-name">help-browser-symbolic</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">Help</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="close_button">
+                <property name="halign">end</property>
+                <property name="hexpand">true</property>
+                <property name="child">
+                  <object class="GtkBox">
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="icon-name">window-close-symbolic</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">Close</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </property>
   </template>

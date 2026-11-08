@@ -1,6 +1,6 @@
 # Project Progress
 
-Last updated: 2026-11-07
+Last updated: 2026-11-08
 
 This file is the concise handoff record for continuing development from a new
 machine or a fresh Codex session. `IMPLEMENTATION_PLAN.md` remains the source of
@@ -10,9 +10,10 @@ completed and what should happen next.
 ## Current position
 
 - Active branch: `main`
-- Last completed phase: Phase 1 — project foundation
-- Next phase: Phase 2 — profile reads
-- Expected repository state after the Phase 1 commit: clean and pushed
+- Last completed phase: Phase 2 — profile reads
+- Next phase: Phase 3 — safe persistence
+- Last approved commit: Phase 2 profile reads (see the latest `git log` entry)
+- Expected repository state after the Phase 2 commit: clean and pushed
 
 ## Completed
 
@@ -38,6 +39,43 @@ GSK_RENDERER=cairo G_DEBUG=fatal-warnings cargo test --all-features
 gtk4-builder-tool validate ui/windows/profile-window.ui
 ```
 
+### Phase 2: profile reads
+
+- Added a plain Rust profile model and first-name/remainder name split.
+- Added lossless GECOS parsing that retains missing, empty, hidden, and extra
+  fields exactly when serialised.
+- Added current-user lookup using the effective UID and `getent passwd`, so
+  the lookup follows the machine's NSS configuration without unsafe code.
+- Added read-only AccountsService access for `Email` and `IconFile` over the
+  system D-Bus.
+- Added bounded background reads of `~/.face` and the AccountsService icon,
+  preserving the fallback order and allowing the UI to skip corrupt images.
+- Added a read-only, scrollable GTK form with loading, partial-warning, and
+  fatal-error states. Blocking account and file work runs off the GTK thread.
+- Matched the supplied Whisker Menu settings reference with a framed content
+  region, a separate fixed button footer, sentence-case labels ending in
+  colons, and themed icons on the Help and Close buttons.
+- Added focused parser, model, service-boundary, degraded-service, resource,
+  and display-backed UI tests.
+
+Automated verification passed:
+
+```text
+cargo fmt --check
+cargo clippy --all-targets --all-features -- -D warnings
+GSK_RENDERER=cairo G_DEBUG=fatal-warnings cargo test --all-features
+gtk4-builder-tool validate ui/windows/profile-window.ui
+```
+
+Live verification on the development machine found UID 1000 through NSS,
+found `/org/freedesktop/Accounts/User1000`, read its empty email and
+`/home/kris/.face` icon path, and kept the application running without GTK
+fatal warnings.
+
+Manual verification was approved on 2026-11-08, including the avatar, current
+profile values, scrolling behaviour, Whisker-style framed layout and footer,
+and Close button.
+
 ## Agreed decisions
 
 - Working name and executable: `xfce4-profile-editor`.
@@ -59,17 +97,9 @@ gtk4-builder-tool validate ui/windows/profile-window.ui
 
 ## Next work
 
-Phase 2 adds read-only profile loading:
-
-1. Implement the plain Rust profile model.
-2. Implement lossless GECOS parsing with preservation of hidden fields.
-3. Resolve the current user through NSS-safe APIs.
-4. Read email and icon information from AccountsService.
-5. Populate a read-only form and avatar fallback state.
-6. Add focused core, D-Bus boundary, and UI-loading tests.
-
-Do not implement profile writes, Polkit elevation, image selection, or camera
-capture during Phase 2.
+Begin Phase 3 with the focused Polkit/helper compatibility and security spike.
+Document and test the chosen GECOS update boundary before implementing editable
+fields or any privileged write path.
 
 ## Resuming on another machine
 

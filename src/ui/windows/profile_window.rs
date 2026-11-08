@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::{gio, glib};
+
+use crate::core::{LoadWarning, LoadedProfile, Profile, ProfileStore};
 
 mod imp {
     use super::*;
@@ -9,7 +12,26 @@ mod imp {
 
     #[derive(Debug, Default, gtk::CompositeTemplate)]
     #[template(resource = "/io/github/camelofcode/Xfce4ProfileEditor/ui/windows/profile-window.ui")]
-    pub struct ProfileWindow;
+    pub struct ProfileWindow {
+        #[template_child]
+        pub avatar_picture: TemplateChild<gtk::Picture>,
+        #[template_child]
+        pub close_button: TemplateChild<gtk::Button>,
+        #[template_child]
+        pub email_entry: TemplateChild<gtk::Entry>,
+        #[template_child]
+        pub first_name_entry: TemplateChild<gtk::Entry>,
+        #[template_child]
+        pub home_phone_entry: TemplateChild<gtk::Entry>,
+        #[template_child]
+        pub last_name_entry: TemplateChild<gtk::Entry>,
+        #[template_child]
+        pub loading_indicator: TemplateChild<gtk::Spinner>,
+        #[template_child]
+        pub office_phone_entry: TemplateChild<gtk::Entry>,
+        #[template_child]
+        pub status_label: TemplateChild<gtk::Label>,
+    }
 
     #[glib::object_subclass]
     impl ObjectSubclass for ProfileWindow {
@@ -26,7 +48,20 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for ProfileWindow {}
+    impl ObjectImpl for ProfileWindow {
+        fn constructed(&self) {
+            self.parent_constructed();
+
+            let window = self.obj();
+            let weak_window = window.downgrade();
+            self.close_button.connect_clicked(move |_| {
+                if let Some(window) = weak_window.upgrade() {
+                    window.close();
+                }
+            });
+            window.load_profile();
+        }
+    }
     impl WidgetImpl for ProfileWindow {}
     impl WindowImpl for ProfileWindow {}
     impl ApplicationWindowImpl for ProfileWindow {}
@@ -46,12 +81,88 @@ impl ProfileWindow {
             .property("application", application)
             .build()
     }
+
+    fn load_profile(&self) {
+        let weak_window = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = gio::spawn_blocking(ProfileStore::load_current).await;
+            let Some(window) = weak_window.upgrade() else {
+                return;
+            };
+
+            match result {
+                Ok(Ok(loaded)) => window.show_profile(loaded),
+                Ok(Err(error)) => window.show_load_error(&error.to_string()),
+                Err(_) => window.show_load_error("Profile loading stopped unexpectedly."),
+            }
+        });
+    }
+
+    fn show_profile(&self, loaded: LoadedProfile) {
+        let imp = self.imp();
+        let Profile {
+            first_name,
+            last_name,
+            home_phone,
+            email,
+            office_phone,
+            avatars,
+        } = loaded.profile;
+
+        imp.first_name_entry.set_text(&first_name);
+        imp.last_name_entry.set_text(&last_name);
+        imp.home_phone_entry.set_text(&home_phone);
+        imp.email_entry.set_text(&email);
+        imp.office_phone_entry.set_text(&office_phone);
+
+        for avatar in avatars {
+            let tooltip = format!("Profile image from {}", avatar.source_path().display());
+            let bytes = glib::Bytes::from_owned(avatar.bytes);
+            if let Ok(texture) = gtk::gdk::Texture::from_bytes(&bytes) {
+                imp.avatar_picture.set_paintable(Some(&texture));
+                imp.avatar_picture.set_tooltip_text(Some(&tooltip));
+                imp.avatar_picture.set_visible(true);
+                break;
+            }
+        }
+
+        imp.loading_indicator.set_spinning(false);
+        imp.loading_indicator.set_visible(false);
+        show_warnings(&imp.status_label, &loaded.warnings);
+    }
+
+    fn show_load_error(&self, message: &str) {
+        let imp = self.imp();
+        imp.loading_indicator.set_spinning(false);
+        imp.loading_indicator.set_visible(false);
+        imp.status_label.remove_css_class("dim-label");
+        imp.status_label.add_css_class("error");
+        imp.status_label.set_label(message);
+        imp.status_label.set_tooltip_text(None);
+    }
+}
+
+fn show_warnings(label: &gtk::Label, warnings: &[LoadWarning]) {
+    if warnings.is_empty() {
+        label.set_visible(false);
+        return;
+    }
+
+    label.remove_css_class("dim-label");
+    label.add_css_class("warning");
+    label.set_label("Some profile information could not be loaded.");
+    label.set_tooltip_text(Some(
+        &warnings
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join("\n"),
+    ));
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gtk::prelude::*;
 
     #[test]
     fn profile_window_constructs_from_its_resource_template() {

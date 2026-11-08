@@ -1,3 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-// Window-specific presentation rules belong here as the interface is built.
+.profile-avatar {
+  background-color: #{"alpha(currentColor, 0.08)"};
+  border: 1px solid #{"alpha(currentColor, 0.18)"};
+  border-radius: 999px;
+  padding: 0;
+}
+
+.profile-avatar > border {
+  border: 0;
+}
+
+.profile-avatar picture {
+  border-radius: 999px;
+}
