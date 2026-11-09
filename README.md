@@ -9,8 +9,8 @@ Its working name reflects the desktop it is intended to integrate with.
 ## Status
 
 The repository is under phased development. Profile reads, the narrowly
-scoped GECOS persistence path, and AccountsService email writes are
-implemented; image and camera writes remain later phases. See
+scoped GECOS persistence path, AccountsService email writes, and profile-image
+selection/removal are implemented; camera capture remains a later phase. See
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the agreed scope,
 architecture, implementation phases, and acceptance criteria. See
 [PROGRESS.md](PROGRESS.md) for the current implementation and handoff status.
@@ -45,6 +45,9 @@ meson setup target/meson-build -Dprofile=development
 meson compile -C target/meson-build
 target/meson-build/src/xfce4-profile-editor
 ```
+
+Camera support is enabled by default and can be omitted with Meson's
+`-Dcamera=false` option. This excludes Nokhwa and its V4L2 dependency graph.
 
 The repeatable developer workflow is also available through one script:
 

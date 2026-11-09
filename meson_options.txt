@@ -7,3 +7,10 @@ option(
   value: 'development',
   description: 'Cargo build profile',
 )
+
+option(
+  'camera',
+  type: 'boolean',
+  value: true,
+  description: 'Build camera capture support',
+)

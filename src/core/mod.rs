@@ -4,6 +4,7 @@
 
 mod account_service;
 mod avatar_persistence;
+mod camera;
 mod email_persistence;
 mod gecos;
 mod gecos_helper;
@@ -18,6 +19,7 @@ pub(crate) use avatar_persistence::{
     AvatarRemovalError, AvatarRemovalOutcome, AvatarSaveError, AvatarSaveOutcome,
     remove_current_avatar, save_current_avatar,
 };
+pub(crate) use camera::{CameraAvailability, CameraDiscoveryError, discover_cameras};
 pub(crate) use email_persistence::{EmailState, EmailWriteError};
 pub(crate) use gecos_helper::GecosWriteError;
 pub(crate) use gecos_persistence::{GecosFields, GecosState};

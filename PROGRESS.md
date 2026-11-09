@@ -1,6 +1,6 @@
 # Project Progress
 
-Last updated: 2026-11-08
+Last updated: 2026-11-09
 
 This file is the concise handoff record for continuing development from a new
 machine or a fresh Codex session. `IMPLEMENTATION_PLAN.md` remains the source of
@@ -12,8 +12,8 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 4 — image selection
 - Next phase: Phase 5 — camera capture
-- Last approved commit before this checkpoint: `e894be5` (`Persist profile
-  images atomically`)
+- Last approved commit before this checkpoint: `25fb080` (`Add profile image
+  removal`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
@@ -33,9 +33,10 @@ completed and what should happen next.
 - Completed checkpoint: Phase 4b — asynchronous image selection and preview
 - Completed checkpoint: Phase 4c — atomic image persistence and AccountsService update
 - Completed checkpoint: Phase 4d — profile-image removal
-- Next checkpoint: Phase 5a — camera capability and device discovery
+- Completed checkpoint: Phase 5a — camera capability and device discovery
+- Next checkpoint: Phase 5b — camera window and bounded frame pipeline
 - Work awaiting review: none
-- Expected repository state: clean after the approved Phase 4d commit
+- Expected repository state: clean after the approved Phase 5a commit
 
 ## Completed
 
@@ -369,6 +370,31 @@ current, and the core boundary search finds no GTK/GDK imports. Manual testing
 confirmed removal in the editor and Whisker Menu, persistence across reopening,
 and successful restoration by choosing the original image again. Phase 4d and
 the complete Phase 4 image-selection flow were approved on 2026-11-08.
+
+Phase 5a is implemented. Nokhwa 0.10.11 is selected
+with only its native V4L2 input feature, behind the default-enabled Cargo
+feature `camera`; Meson can omit the complete camera dependency graph with
+`-Dcamera=false`. Discovery runs off the GTK thread, retains sparse device
+indices reported by V4L2 instead of assuming `/dev/video0`, and records
+`NotCompiled`, `NoDevices`, available devices, or a typed backend error without
+opening a camera. The Take photo action remains hidden until the capture window
+exists in Phase 5b.
+
+The resolved all-feature Cargo graph was audited from package licence metadata.
+No package lacks licence metadata, and every SPDX expression offers a
+GPL-2.0-or-later-compatible choice. The decision and camera-specific licence
+details are recorded in `docs/phase-5-camera-backend.md`; `AGENTS.md` now makes
+the same resolved-graph check mandatory for future dependency changes.
+
+Three focused tests cover no-device discovery, preservation of multiple sparse
+device indices, and typed backend failure. Both all-feature and
+`--no-default-features` configurations compile cleanly. Formatting and Clippy
+pass with warnings denied, and the full all-feature workspace suite passes with
+68 tests. This machine has no `/dev/video*` device, so manual review is limited
+to confirming a normal launch with Take photo still hidden; real capture is a
+Phase 5b test on camera-equipped hardware.
+
+The Phase 5a application smoke test was approved on 2026-11-09.
 
 ## Resuming on another machine
 

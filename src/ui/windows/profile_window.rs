@@ -9,11 +9,11 @@ use gtk::subclass::prelude::*;
 use gtk::{gio, glib};
 
 use crate::core::{
-    AvatarRemovalError, AvatarRemovalOutcome, AvatarSaveError, AvatarSaveOutcome, EmailState,
-    EmailWriteError, GecosFields, GecosState, GecosWriteError, LoadWarning, LoadedProfile, Profile,
-    ProfileSaveError, ProfileSaveOutcome, ProfileSaveRequest, ProfileStore,
-    SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES, remove_current_avatar,
-    save_current_avatar, save_current_profile,
+    AvatarRemovalError, AvatarRemovalOutcome, AvatarSaveError, AvatarSaveOutcome,
+    CameraAvailability, CameraDiscoveryError, EmailState, EmailWriteError, GecosFields, GecosState,
+    GecosWriteError, LoadWarning, LoadedProfile, Profile, ProfileSaveError, ProfileSaveOutcome,
+    ProfileSaveRequest, ProfileStore, SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES,
+    discover_cameras, remove_current_avatar, save_current_avatar, save_current_profile,
 };
 
 const VALIDATION_DEBOUNCE: Duration = Duration::from_millis(500);
@@ -53,6 +53,8 @@ mod imp {
         pub status_label: TemplateChild<gtk::Label>,
         pub(super) email_state: RefCell<Option<EmailState>>,
         pub(super) gecos_state: RefCell<Option<GecosState>>,
+        pub(super) camera_availability:
+            RefCell<Option<Result<CameraAvailability, CameraDiscoveryError>>>,
         pub(super) load_warnings: RefCell<Vec<LoadWarning>>,
         pub(super) validation_timeout: RefCell<Option<glib::SourceId>>,
         pub(super) save_running: Cell<bool>,
@@ -134,6 +136,7 @@ mod imp {
                 entry.add_controller(focus);
             }
             window.load_profile();
+            window.load_camera_availability();
         }
 
         fn dispose(&self) {
@@ -184,6 +187,20 @@ impl ProfileWindow {
                     window.show_load_error(&gettext("The current user account could not be read."))
                 }
                 Err(_) => window.show_load_error(&gettext("Profile loading stopped unexpectedly.")),
+            }
+        });
+    }
+
+    fn load_camera_availability(&self) {
+        let weak_window = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = gio::spawn_blocking(discover_cameras).await;
+            let Some(window) = weak_window.upgrade() else {
+                return;
+            };
+
+            if let Ok(availability) = result {
+                window.imp().camera_availability.replace(Some(availability));
             }
         });
     }

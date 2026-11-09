@@ -67,6 +67,10 @@ generic `helpers` or `utils` modules.
 
 - The project is licensed as `GPL-2.0-or-later`; do not add code or assets with
   incompatible terms.
+- Before adding or updating a dependency, inspect the licence metadata for its
+  complete resolved feature graph and confirm that every SPDX expression has a
+  GPL-2.0-or-later-compatible choice. Record any unusual, missing, or custom
+  licence before proceeding.
 - Add `SPDX-License-Identifier: GPL-2.0-or-later` to new source, build, UI, and
   metadata files using the comment syntax appropriate to that format.
 - Preserve third-party copyright and licence notices, and document vendored or
