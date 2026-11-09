@@ -10,7 +10,9 @@ Its working name reflects the desktop it is intended to integrate with.
 
 The repository is under phased development. Profile reads, the narrowly
 scoped GECOS persistence path, AccountsService email writes, and profile-image
-selection/removal are implemented; camera capture remains a later phase. See
+selection/removal are implemented. Camera capture is implemented; its backend
+has been validated on camera-equipped hardware and the window is awaiting final
+manual acceptance. See
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the agreed scope,
 architecture, implementation phases, and acceptance criteria. See
 [PROGRESS.md](PROGRESS.md) for the current implementation and handoff status.

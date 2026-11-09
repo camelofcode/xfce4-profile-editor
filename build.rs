@@ -7,7 +7,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 
 const SCSS_ENTRY_POINT: &str = "ui/sass/app.scss";
-const SCSS_PARTIALS: &[&str] = &["ui/sass/_profile-window.scss"];
+const SCSS_PARTIALS: &[&str] = &[
+    "ui/sass/_profile-window.scss",
+    "ui/sass/_camera-window.scss",
+];
 const RESOURCE_MANIFEST: &str = "resources.gresource.xml";
 const RESOURCE_OUTPUT: &str = "xfce4_profile_editor.gresource";
 

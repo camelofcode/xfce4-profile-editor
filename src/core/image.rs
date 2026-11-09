@@ -6,6 +6,8 @@ use std::fs::File;
 use std::io::{Cursor, Read};
 use std::path::Path;
 
+#[cfg(feature = "camera")]
+use image::RgbImage;
 use image::codecs::png::PngEncoder;
 use image::imageops::FilterType;
 use image::{DynamicImage, GenericImageView, ImageDecoder, ImageEncoder, ImageReader, Limits};
@@ -41,6 +43,9 @@ pub(crate) enum ImageNormalisationError {
     Decode(#[source] image::ImageError),
     #[error("normalised PNG could not be encoded: {0}")]
     Encode(#[source] image::ImageError),
+    #[error("RGB image data does not match its {width} by {height} dimensions")]
+    #[cfg(feature = "camera")]
+    InvalidPixelBuffer { width: u32, height: u32 },
 }
 
 /// Reads a local regular file with a hard byte bound, then normalises it.
@@ -94,6 +99,23 @@ pub(crate) fn normalise_avatar(source: &[u8]) -> Result<Vec<u8>, ImageNormalisat
         DynamicImage::from_decoder(decoder).map_err(ImageNormalisationError::Decode)?;
     decoded.apply_orientation(orientation);
 
+    normalise_decoded(&decoded)
+}
+
+/// Normalises one validated RGB camera frame without re-encoding it first.
+#[cfg(feature = "camera")]
+pub(crate) fn normalise_avatar_rgb(
+    width: u32,
+    height: u32,
+    rgb: Vec<u8>,
+) -> Result<Vec<u8>, ImageNormalisationError> {
+    validate_dimensions(width, height)?;
+    let image = RgbImage::from_raw(width, height, rgb)
+        .ok_or(ImageNormalisationError::InvalidPixelBuffer { width, height })?;
+    normalise_decoded(&DynamicImage::ImageRgb8(image))
+}
+
+fn normalise_decoded(decoded: &DynamicImage) -> Result<Vec<u8>, ImageNormalisationError> {
     let (width, height) = decoded.dimensions();
     let side = width.min(height);
     let crop = decoded.view((width - side) / 2, (height - side) / 2, side, side);
@@ -327,5 +349,22 @@ mod tests {
                 height: 4_001
             })
         ));
+    }
+
+    #[cfg(feature = "camera")]
+    #[test]
+    fn normalises_a_camera_rgb_frame_without_an_intermediate_encoding() {
+        let rgb = RgbImage::from_fn(4, 2, |x, _| match x {
+            1 => Rgb([255, 0, 0]),
+            2 => Rgb([0, 255, 0]),
+            _ => Rgb([0, 0, 0]),
+        });
+
+        let output = normalise_avatar_rgb(4, 2, rgb.into_raw()).unwrap();
+        let decoded = decode_normalised(&output);
+
+        assert_eq!(decoded.dimensions(), (NORMALISED_SIZE, NORMALISED_SIZE));
+        assert!(decoded.get_pixel(64, 256).0[0] > 240);
+        assert!(decoded.get_pixel(448, 256).0[1] > 240);
     }
 }

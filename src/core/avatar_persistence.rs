@@ -13,6 +13,8 @@ use thiserror::Error;
 use super::account_service::{AccountsError, IconClient, SystemAccountsSource};
 use super::image::{ImageNormalisationError, normalise_avatar_file};
 use super::user::{NssUserSource, UserLookupError, UserSource};
+#[cfg(feature = "camera")]
+use super::{CameraFrame, image::normalise_avatar_rgb};
 
 const FACE_FILE_MODE: u32 = 0o644;
 const TEMPORARY_FILE_MODE: u32 = 0o600;
@@ -83,6 +85,13 @@ pub(crate) fn save_current_avatar(
     save_with(&NssUserSource, &SystemAccountsSource, &source_path)
 }
 
+#[cfg(feature = "camera")]
+pub(crate) fn save_current_camera_avatar(
+    frame: CameraFrame,
+) -> Result<AvatarSaveOutcome, AvatarSaveError> {
+    save_camera_with(&NssUserSource, &SystemAccountsSource, frame)
+}
+
 pub(crate) fn remove_current_avatar() -> Result<AvatarRemovalOutcome, AvatarRemovalError> {
     remove_with(&NssUserSource, &SystemAccountsSource)
 }
@@ -93,6 +102,25 @@ fn save_with(
     source_path: &Path,
 ) -> Result<AvatarSaveOutcome, AvatarSaveError> {
     let png = normalise_avatar_file(source_path)?;
+    save_normalised_with(users, accounts, png)
+}
+
+#[cfg(feature = "camera")]
+fn save_camera_with(
+    users: &impl UserSource,
+    accounts: &impl IconClient,
+    frame: CameraFrame,
+) -> Result<AvatarSaveOutcome, AvatarSaveError> {
+    let (width, height, rgb) = frame.into_parts();
+    let png = normalise_avatar_rgb(width, height, rgb)?;
+    save_normalised_with(users, accounts, png)
+}
+
+fn save_normalised_with(
+    users: &impl UserSource,
+    accounts: &impl IconClient,
+    png: Vec<u8>,
+) -> Result<AvatarSaveOutcome, AvatarSaveError> {
     let user = users.current_user()?;
     let face_path = user.home_directory.join(".face");
     write_avatar_atomically(&face_path, &png)?;
@@ -300,6 +328,24 @@ mod tests {
 
         assert_eq!(fs::read(face_path).unwrap(), png);
         assert!(accounts_error.is_some());
+    }
+
+    #[cfg(feature = "camera")]
+    #[test]
+    fn camera_frame_uses_the_same_atomic_persistence_path() {
+        let directory = TestDirectory::new();
+        let face = directory.path().join(".face");
+        let accounts = FakeIconClient::default();
+        let frame = CameraFrame::new(4, 2, vec![80; 4 * 2 * 3]).unwrap();
+
+        let outcome =
+            save_camera_with(&user(directory.path().to_owned()), &accounts, frame).unwrap();
+        let (png, face_path, accounts_error) = outcome.into_parts();
+
+        assert_eq!(face_path, face);
+        assert_eq!(fs::read(&face).unwrap(), png);
+        assert!(accounts_error.is_none());
+        assert_eq!(accounts.calls.into_inner(), vec![(1000, face)]);
     }
 
     #[test]

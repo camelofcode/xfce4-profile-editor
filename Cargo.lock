@@ -1655,6 +1655,7 @@ dependencies = [
  "rustix 1.1.6",
  "serde_json",
  "thiserror",
+ "v4l",
  "xfce4-profile-data",
  "xfce4-profile-editor-helper",
  "zbus",

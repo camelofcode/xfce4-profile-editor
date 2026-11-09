@@ -4,6 +4,7 @@ use gtk::gio;
 
 const RESOURCE_PATHS: &[&str] = &[
     "/io/github/camelofcode/Xfce4ProfileEditor/ui/windows/profile-window.ui",
+    "/io/github/camelofcode/Xfce4ProfileEditor/ui/windows/camera-window.ui",
     "/io/github/camelofcode/Xfce4ProfileEditor/ui/app.css",
 ];
 

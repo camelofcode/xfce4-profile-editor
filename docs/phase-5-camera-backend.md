@@ -9,17 +9,36 @@ default-enabled Cargo feature `camera`. Enable only Nokhwa's `input-v4l`
 feature. Do not enable its default MJPEG decoder, threaded callback, OpenCV,
 GStreamer, or WGPU features.
 
-Nokhwa is preferred over `eye`, direct `v4l`, and framework bindings because it
-provides the small cross-device API this application needs while retaining a
-native V4L2 backend. Direct `v4l` would make the application own more format
-negotiation and backend detail, while the higher-level multimedia frameworks
-would add native dependencies and runtime scope that are unnecessary for a
-profile-photo capture window.
+Nokhwa is preferred over `eye` and framework bindings because it provides the
+small cross-device capture API this application needs while retaining a native
+V4L2 backend. The application uses Nokhwa's existing `v4l` dependency directly
+only during discovery, to reject metadata-only companion nodes by their V4L2
+capabilities. Owning format negotiation and streaming directly through `v4l`
+would add backend detail, while higher-level multimedia frameworks would add
+native dependencies and runtime scope that are unnecessary for a profile-photo
+capture window.
 
-The GTK-independent core owns discovery and capture. Device discovery returns
-the real indices reported by V4L2 rather than assuming `/dev/video0`. Capture
-will run on a worker thread in the next checkpoint; GTK will only consume plain
-frame data selected for display.
+The GTK-independent core owns discovery and capture. Device discovery retains
+only nodes advertising both video-capture and streaming capabilities, sorts
+them by their real V4L2 index rather than assuming enumeration order, and never
+starts a stream. Capture runs on a worker thread; GTK consumes only plain frame
+data selected for display.
+
+## Capture pipeline
+
+The capture service opens the selected V4L2 device entirely on its worker
+thread. It chooses a safe format close to 640 by 480 at 30 frames per second,
+preferring MJPEG when otherwise equal. MJPEG frames use the project's existing
+bounded JPEG decoder; YUYV, NV12, raw RGB/BGR, and greyscale frames use
+Nokhwa's native conversions.
+
+The worker replaces one shared latest-frame slot instead of queueing frames.
+The GTK window polls that slot, constructs a texture only for the frame it will
+display, and freezes a plain RGB frame when Capture is selected. Cancel, window
+close, errors, and application teardown all signal the worker to stop; a
+separate shutdown task joins it so GTK never waits for a blocking camera read.
+Accepted frames enter the same centre-crop, 512-pixel PNG, atomic `~/.face`,
+and AccountsService path used by file selection.
 
 ## Licence review
 

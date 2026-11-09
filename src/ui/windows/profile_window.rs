@@ -15,6 +15,10 @@ use crate::core::{
     ProfileSaveRequest, ProfileStore, SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES,
     discover_cameras, remove_current_avatar, save_current_avatar, save_current_profile,
 };
+#[cfg(feature = "camera")]
+use crate::core::{CameraDevice, CameraFrame, save_current_camera_avatar};
+#[cfg(feature = "camera")]
+use crate::ui::windows::CameraWindow;
 
 const VALIDATION_DEBOUNCE: Duration = Duration::from_millis(500);
 
@@ -51,6 +55,8 @@ mod imp {
         pub remove_photo_button: TemplateChild<gtk::Button>,
         #[template_child]
         pub status_label: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub take_photo_button: TemplateChild<gtk::Button>,
         pub(super) email_state: RefCell<Option<EmailState>>,
         pub(super) gecos_state: RefCell<Option<GecosState>>,
         pub(super) camera_availability:
@@ -96,6 +102,16 @@ mod imp {
                     window.choose_photo();
                 }
             });
+
+            #[cfg(feature = "camera")]
+            {
+                let weak_window = window.downgrade();
+                self.take_photo_button.connect_clicked(move |_| {
+                    if let Some(window) = weak_window.upgrade() {
+                        window.take_photo();
+                    }
+                });
+            }
 
             let weak_window = window.downgrade();
             self.remove_photo_button.connect_clicked(move |_| {
@@ -200,9 +216,49 @@ impl ProfileWindow {
             };
 
             if let Ok(availability) = result {
-                window.imp().camera_availability.replace(Some(availability));
+                window.set_camera_availability(availability);
             }
         });
+    }
+
+    fn set_camera_availability(
+        &self,
+        availability: Result<CameraAvailability, CameraDiscoveryError>,
+    ) {
+        #[cfg(feature = "camera")]
+        let available = matches!(
+            &availability,
+            Ok(CameraAvailability::Available(devices)) if !devices.is_empty()
+        );
+        #[cfg(not(feature = "camera"))]
+        let available = false;
+
+        self.imp().take_photo_button.set_visible(available);
+        self.imp().take_photo_button.set_sensitive(available);
+        self.imp().camera_availability.replace(Some(availability));
+    }
+
+    #[cfg(feature = "camera")]
+    fn camera_device(&self) -> Option<CameraDevice> {
+        match self.imp().camera_availability.borrow().as_ref()? {
+            Ok(CameraAvailability::Available(devices)) => devices.first().cloned(),
+            Ok(CameraAvailability::NoDevices) | Err(_) => None,
+        }
+    }
+
+    #[cfg(feature = "camera")]
+    fn take_photo(&self) {
+        let Some(device) = self.camera_device() else {
+            return;
+        };
+        self.imp().avatar_popover.popdown();
+        let weak_window = self.downgrade();
+        let camera = CameraWindow::new(self, device, move |frame| {
+            if let Some(window) = weak_window.upgrade() {
+                window.save_camera_photo(frame);
+            }
+        });
+        camera.present();
     }
 
     fn show_profile(&self, loaded: LoadedProfile) {
@@ -321,6 +377,23 @@ impl ProfileWindow {
         let weak_window = self.downgrade();
         glib::spawn_future_local(async move {
             let result = gio::spawn_blocking(move || save_current_avatar(path)).await;
+            let Some(window) = weak_window.upgrade() else {
+                return;
+            };
+            window.finish_image_operation();
+            window.finish_avatar_save_result(result);
+        });
+    }
+
+    #[cfg(feature = "camera")]
+    fn save_camera_photo(&self, frame: CameraFrame) {
+        if !self.begin_image_operation() {
+            return;
+        }
+        self.show_save_status(&gettext("Saving profile image…"), false, None);
+        let weak_window = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = gio::spawn_blocking(move || save_current_camera_avatar(frame)).await;
             let Some(window) = weak_window.upgrade() else {
                 return;
             };
@@ -459,6 +532,7 @@ impl ProfileWindow {
         }
         imp.choose_photo_button.set_sensitive(false);
         imp.remove_photo_button.set_sensitive(false);
+        imp.take_photo_button.set_sensitive(false);
         true
     }
 
@@ -468,6 +542,19 @@ impl ProfileWindow {
         imp.choose_photo_button.set_sensitive(true);
         imp.remove_photo_button
             .set_sensitive(imp.avatar_present.get());
+        imp.take_photo_button
+            .set_sensitive(self.camera_device_is_available());
+    }
+
+    fn camera_device_is_available(&self) -> bool {
+        #[cfg(feature = "camera")]
+        {
+            self.camera_device().is_some()
+        }
+        #[cfg(not(feature = "camera"))]
+        {
+            false
+        }
     }
 
     fn gecos_fields(&self) -> GecosFields {
@@ -859,6 +946,16 @@ mod tests {
         assert!(window.title().is_some_and(|title| !title.is_empty()));
         window.present();
         assert!(window.is_visible());
+        #[cfg(feature = "camera")]
+        {
+            let camera: CameraWindow = glib::Object::builder()
+                .property("transient-for", &window)
+                .build();
+            camera.present();
+            assert!(camera.is_visible());
+            camera.exercise_capture_controls_for_test();
+            camera.close();
+        }
         window.close();
     }
 }

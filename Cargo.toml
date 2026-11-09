@@ -15,7 +15,7 @@ repository = "https://github.com/camelofcode/xfce4-profile-editor"
 
 [features]
 default = ["camera"]
-camera = ["dep:nokhwa"]
+camera = ["dep:nokhwa", "dep:v4l"]
 
 [dependencies]
 gettext-rs = { version = "0.8.0", features = ["gettext-system"] }
@@ -25,6 +25,7 @@ nokhwa = { version = "0.10.11", default-features = false, features = ["input-v4l
 rustix = { version = "1.1.6", features = ["process"] }
 serde_json = "1.0.145"
 thiserror = "2.0.21"
+v4l = { version = "0.14.0", default-features = false, features = ["v4l2"], optional = true }
 xfce4-profile-data = { path = "crates/profile-data" }
 xfce4-profile-editor-helper = { path = "crates/profile-helper" }
 zbus = { version = "6.2.1", default-features = false, features = ["default-rt", "proxy"] }

@@ -12,8 +12,8 @@ completed and what should happen next.
 - Active branch: `main`
 - Last completed phase: Phase 4 — image selection
 - Next phase: Phase 5 — camera capture
-- Last approved commit before this checkpoint: `25fb080` (`Add profile image
-  removal`)
+- Last approved commit before this checkpoint: `63ee581` (`Add camera
+  capability discovery`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
@@ -34,9 +34,12 @@ completed and what should happen next.
 - Completed checkpoint: Phase 4c — atomic image persistence and AccountsService update
 - Completed checkpoint: Phase 4d — profile-image removal
 - Completed checkpoint: Phase 5a — camera capability and device discovery
-- Next checkpoint: Phase 5b — camera window and bounded frame pipeline
-- Work awaiting review: none
-- Expected repository state: clean after the approved Phase 5a commit
+- Implemented checkpoint awaiting review: Phase 5b — camera window, bounded
+  frame pipeline, and avatar-save integration
+- Next checkpoint after approval: Phase 5c — camera-equipped hardware
+  acceptance and any resulting fixes
+- Work awaiting review: Phase 5b changes are uncommitted
+- Expected repository state: modified files for the Phase 5b checkpoint
 
 ## Completed
 
@@ -377,8 +380,8 @@ feature `camera`; Meson can omit the complete camera dependency graph with
 `-Dcamera=false`. Discovery runs off the GTK thread, retains sparse device
 indices reported by V4L2 instead of assuming `/dev/video0`, and records
 `NotCompiled`, `NoDevices`, available devices, or a typed backend error without
-opening a camera. The Take photo action remains hidden until the capture window
-exists in Phase 5b.
+starting a camera stream. The Take photo action remains hidden until the capture
+window exists in Phase 5b.
 
 The resolved all-feature Cargo graph was audited from package licence metadata.
 No package lacks licence metadata, and every SPDX expression offers a
@@ -390,11 +393,41 @@ Three focused tests cover no-device discovery, preservation of multiple sparse
 device indices, and typed backend failure. Both all-feature and
 `--no-default-features` configurations compile cleanly. Formatting and Clippy
 pass with warnings denied, and the full all-feature workspace suite passes with
-68 tests. This machine has no `/dev/video*` device, so manual review is limited
-to confirming a normal launch with Take photo still hidden; real capture is a
-Phase 5b test on camera-equipped hardware.
+68 tests. The sandbox exposed no `/dev/video*` device, so that checkpoint's
+manual review was limited to a normal launch with Take photo hidden. The host
+session does have a working webcam for the Phase 5b acceptance test.
 
 The Phase 5a application smoke test was approved on 2026-11-09.
+
+Phase 5b is implemented and awaiting review. The core opens Nokhwa only on a
+dedicated worker, negotiates a safe format close to 640 by 480 at 30 frames per
+second, and replaces a single latest-frame slot so stale frames cannot queue.
+MJPEG uses the existing bounded image decoder; YUYV, NV12, raw RGB/BGR, and
+greyscale use Nokhwa's conversion path. All data crossing into GTK is a plain,
+validated RGB frame.
+
+The resource-backed camera window provides translated Capture, Retake, Use
+photo, and Cancel states with icon-bearing footer buttons. It creates a GTK
+memory texture only for the frame being displayed. Capturing freezes that
+frame while the worker continues to use the bounded slot; every close, cancel,
+error, and application teardown path signals shutdown and joins the worker off
+the GTK thread. An accepted frame uses the Phase 4 centre-crop, 512-pixel PNG,
+atomic `.face`, and AccountsService persistence path without an intermediate
+image encoding.
+
+Nine new focused tests cover capture-node filtering, latest-frame replacement, worker shutdown/source
+release, frame errors, safe format selection, MJPEG decoding, malformed frame
+lengths, direct RGB normalisation, and camera-frame persistence. The existing
+display-backed test now constructs the camera template and exercises live,
+captured, and retake button states. Clippy passes with warnings denied and all
+77 all-feature workspace tests pass. Initial host testing exposed a device
+selection bug: Nokhwa enumerated the webcam's metadata-only `/dev/video1` node
+before its capture-capable `/dev/video0` node. Discovery now filters nodes using
+their V4L2 video-capture and streaming capabilities and sorts the remaining
+devices by real index. The corrected backend path discovered `/dev/video0` and
+captured a decoded 640 by 480 RGB frame on the host. Preview, Capture, Retake,
+Use photo, and device release are awaiting a repeat manual UI test. Busy, denied,
+and unplugged-device behaviour remain additional Phase 5c checks.
 
 ## Resuming on another machine
 

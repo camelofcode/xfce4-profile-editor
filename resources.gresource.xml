@@ -3,6 +3,7 @@
 <gresources>
   <gresource prefix="/io/github/camelofcode/Xfce4ProfileEditor">
     <file preprocess="xml-stripblanks">ui/windows/profile-window.ui</file>
+    <file preprocess="xml-stripblanks">ui/windows/camera-window.ui</file>
     <file alias="ui/app.css">app.css</file>
   </gresource>
 </gresources>
