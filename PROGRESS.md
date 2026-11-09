@@ -10,10 +10,10 @@ completed and what should happen next.
 ## Current position
 
 - Active branch: `main`
-- Last completed phase: Phase 3 — safe persistence
-- Next phase: Phase 4 — image selection
-- Last approved commit before this checkpoint: `a5056a0` (`Add profile image
-  selection preview`)
+- Last completed phase: Phase 4 — image selection
+- Next phase: Phase 5 — camera capture
+- Last approved commit before this checkpoint: `e894be5` (`Persist profile
+  images atomically`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
@@ -32,9 +32,10 @@ completed and what should happen next.
 - Completed checkpoint: Phase 4a — image validation and normalisation core
 - Completed checkpoint: Phase 4b — asynchronous image selection and preview
 - Completed checkpoint: Phase 4c — atomic image persistence and AccountsService update
-- Next checkpoint: Phase 4d — profile-image removal
+- Completed checkpoint: Phase 4d — profile-image removal
+- Next checkpoint: Phase 5a — camera capability and device discovery
 - Work awaiting review: none
-- Expected repository state: clean after the approved Phase 4c commit
+- Expected repository state: clean after the approved Phase 4d commit
 
 ## Completed
 
@@ -351,6 +352,23 @@ passes with 61 tests, gettext extraction is current, and the core boundary
 search finds no GTK/GDK imports. Manual release testing confirmed immediate
 normalisation, persistence across reopening, and the updated Whisker Menu
 image. Phase 4c was approved on 2026-11-08.
+
+Phase 4d is implemented and awaiting manual review. Remove photo is enabled
+whenever an avatar candidate is loaded or a new image has been saved. It runs
+off the GTK thread, treats a missing `~/.face` as already removed, refuses to
+clear AccountsService when local deletion fails, and clears AccountsService
+with interactive authorization only after local success. The preview returns
+to the themed default only after confirmed local removal; a subsequent service
+failure is shown as explicit partial success.
+
+Four focused removal tests cover complete success, an already-missing local
+file, local failure before the service boundary, and AccountsService failure
+after local success. Clippy passes with warnings denied, the full workspace
+suite passes with 65 tests, the template validates, gettext extraction is
+current, and the core boundary search finds no GTK/GDK imports. Manual testing
+confirmed removal in the editor and Whisker Menu, persistence across reopening,
+and successful restoration by choosing the original image again. Phase 4d and
+the complete Phase 4 image-selection flow were approved on 2026-11-08.
 
 ## Resuming on another machine
 

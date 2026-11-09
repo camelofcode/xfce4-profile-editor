@@ -9,9 +9,10 @@ use gtk::subclass::prelude::*;
 use gtk::{gio, glib};
 
 use crate::core::{
-    AvatarSaveError, AvatarSaveOutcome, EmailState, EmailWriteError, GecosFields, GecosState,
-    GecosWriteError, LoadWarning, LoadedProfile, Profile, ProfileSaveError, ProfileSaveOutcome,
-    ProfileSaveRequest, ProfileStore, SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES,
+    AvatarRemovalError, AvatarRemovalOutcome, AvatarSaveError, AvatarSaveOutcome, EmailState,
+    EmailWriteError, GecosFields, GecosState, GecosWriteError, LoadWarning, LoadedProfile, Profile,
+    ProfileSaveError, ProfileSaveOutcome, ProfileSaveRequest, ProfileStore,
+    SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES, remove_current_avatar,
     save_current_avatar, save_current_profile,
 };
 
@@ -47,6 +48,8 @@ mod imp {
         #[template_child]
         pub office_phone_entry: TemplateChild<gtk::Entry>,
         #[template_child]
+        pub remove_photo_button: TemplateChild<gtk::Button>,
+        #[template_child]
         pub status_label: TemplateChild<gtk::Label>,
         pub(super) email_state: RefCell<Option<EmailState>>,
         pub(super) gecos_state: RefCell<Option<GecosState>>,
@@ -54,7 +57,8 @@ mod imp {
         pub(super) validation_timeout: RefCell<Option<glib::SourceId>>,
         pub(super) save_running: Cell<bool>,
         pub(super) close_after_save: Cell<bool>,
-        pub(super) image_selection_running: Cell<bool>,
+        pub(super) avatar_present: Cell<bool>,
+        pub(super) image_operation_running: Cell<bool>,
     }
 
     #[glib::object_subclass]
@@ -88,6 +92,13 @@ mod imp {
             self.choose_photo_button.connect_clicked(move |_| {
                 if let Some(window) = weak_window.upgrade() {
                     window.choose_photo();
+                }
+            });
+
+            let weak_window = window.downgrade();
+            self.remove_photo_button.connect_clicked(move |_| {
+                if let Some(window) = weak_window.upgrade() {
+                    window.remove_photo();
                 }
             });
 
@@ -205,6 +216,9 @@ impl ProfileWindow {
         self.set_form_editable(true);
         imp.avatar_menu_button.set_sensitive(true);
 
+        imp.avatar_present.set(!avatars.is_empty());
+        imp.remove_photo_button
+            .set_sensitive(imp.avatar_present.get());
         for avatar in avatars {
             let tooltip = format!(
                 "{}\n{}",
@@ -227,10 +241,9 @@ impl ProfileWindow {
 
     fn choose_photo(&self) {
         let imp = self.imp();
-        if imp.image_selection_running.replace(true) {
+        if !self.begin_image_operation() {
             return;
         }
-        imp.choose_photo_button.set_sensitive(false);
         imp.avatar_popover.popdown();
 
         let filter = gtk::FileFilter::new();
@@ -260,7 +273,7 @@ impl ProfileWindow {
                     if let Some(path) = file.path() {
                         window.save_selected_photo(path);
                     } else {
-                        window.finish_image_selection();
+                        window.finish_image_operation();
                         window.show_save_status(
                             &gettext("Only local image files can be used."),
                             true,
@@ -272,7 +285,7 @@ impl ProfileWindow {
                     let Some(window) = weak_window.upgrade() else {
                         return;
                     };
-                    window.finish_image_selection();
+                    window.finish_image_operation();
                     if !dialog_error_is_cancellation(&error) {
                         let diagnostic = error.to_string();
                         window.show_save_status(
@@ -294,7 +307,7 @@ impl ProfileWindow {
             let Some(window) = weak_window.upgrade() else {
                 return;
             };
-            window.finish_image_selection();
+            window.finish_image_operation();
             window.finish_avatar_save_result(result);
         });
     }
@@ -334,6 +347,8 @@ impl ProfileWindow {
                     path.display()
                 )));
                 imp.avatar_picture.set_visible(true);
+                imp.avatar_present.set(true);
+                imp.remove_photo_button.set_sensitive(true);
                 match accounts_error {
                     Some(error) => {
                         let diagnostic = error.to_string();
@@ -358,10 +373,84 @@ impl ProfileWindow {
         }
     }
 
-    fn finish_image_selection(&self) {
+    fn remove_photo(&self) {
+        if !self.begin_image_operation() {
+            return;
+        }
+        self.imp().avatar_popover.popdown();
+        self.show_save_status(&gettext("Removing profile image…"), false, None);
+        let weak_window = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = gio::spawn_blocking(remove_current_avatar).await;
+            let Some(window) = weak_window.upgrade() else {
+                return;
+            };
+            window.finish_image_operation();
+            window.finish_avatar_removal_result(result);
+        });
+    }
+
+    fn finish_avatar_removal_result(
+        &self,
+        result: Result<
+            Result<AvatarRemovalOutcome, AvatarRemovalError>,
+            Box<dyn std::any::Any + Send>,
+        >,
+    ) {
+        match result {
+            Ok(Ok(outcome)) => {
+                let imp = self.imp();
+                imp.avatar_picture
+                    .set_paintable(None::<&gtk::gdk::Paintable>);
+                imp.avatar_picture.set_tooltip_text(None);
+                imp.avatar_picture.set_visible(false);
+                imp.avatar_present.set(false);
+                imp.remove_photo_button.set_sensitive(false);
+                match outcome.into_accounts_error() {
+                    Some(error) => {
+                        let diagnostic = error.to_string();
+                        self.show_warning_status(
+                            &gettext(
+                                "The local profile image was removed, but AccountsService could not be updated.",
+                            ),
+                            Some(&diagnostic),
+                        );
+                    }
+                    None => self.show_save_status(&gettext("Profile image removed."), false, None),
+                }
+            }
+            Ok(Err(error)) => {
+                let diagnostic = error.to_string();
+                self.show_save_status(
+                    &localized_avatar_removal_error(&error),
+                    true,
+                    Some(&diagnostic),
+                );
+            }
+            Err(_) => self.show_save_status(
+                &gettext("Profile image removal stopped unexpectedly."),
+                true,
+                None,
+            ),
+        }
+    }
+
+    fn begin_image_operation(&self) -> bool {
         let imp = self.imp();
-        imp.image_selection_running.set(false);
+        if imp.image_operation_running.replace(true) {
+            return false;
+        }
+        imp.choose_photo_button.set_sensitive(false);
+        imp.remove_photo_button.set_sensitive(false);
+        true
+    }
+
+    fn finish_image_operation(&self) {
+        let imp = self.imp();
+        imp.image_operation_running.set(false);
         imp.choose_photo_button.set_sensitive(true);
+        imp.remove_photo_button
+            .set_sensitive(imp.avatar_present.get());
     }
 
     fn gecos_fields(&self) -> GecosFields {
@@ -638,6 +727,15 @@ fn localized_avatar_save_error(error: &AvatarSaveError) -> String {
             gettext("The current user account could not be read. The profile image was not saved.")
         }
         AvatarSaveError::Local(_) => gettext("The profile image could not be saved."),
+    }
+}
+
+fn localized_avatar_removal_error(error: &AvatarRemovalError) -> String {
+    match error {
+        AvatarRemovalError::User(_) => gettext(
+            "The current user account could not be read. The profile image was not removed.",
+        ),
+        AvatarRemovalError::Local(_) => gettext("The profile image could not be removed."),
     }
 }
 

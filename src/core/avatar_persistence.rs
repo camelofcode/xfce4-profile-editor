@@ -26,6 +26,18 @@ pub(crate) struct AvatarSaveOutcome {
     accounts_error: Option<AccountsError>,
 }
 
+#[derive(Debug)]
+pub(crate) struct AvatarRemovalOutcome {
+    accounts_error: Option<AccountsError>,
+}
+
+impl AvatarRemovalOutcome {
+    #[must_use]
+    pub(crate) fn into_accounts_error(self) -> Option<AccountsError> {
+        self.accounts_error
+    }
+}
+
 impl AvatarSaveOutcome {
     #[must_use]
     pub(crate) fn into_parts(self) -> (Vec<u8>, PathBuf, Option<AccountsError>) {
@@ -41,6 +53,14 @@ pub(crate) enum AvatarSaveError {
     Image(#[from] ImageNormalisationError),
     #[error(transparent)]
     Local(#[from] LocalAvatarWriteError),
+}
+
+#[derive(Debug, Error)]
+pub(crate) enum AvatarRemovalError {
+    #[error("the current user account could not be read: {0}")]
+    User(#[from] UserLookupError),
+    #[error("the local profile image could not be removed: {0}")]
+    Local(#[source] std::io::Error),
 }
 
 #[derive(Debug, Error)]
@@ -63,6 +83,10 @@ pub(crate) fn save_current_avatar(
     save_with(&NssUserSource, &SystemAccountsSource, &source_path)
 }
 
+pub(crate) fn remove_current_avatar() -> Result<AvatarRemovalOutcome, AvatarRemovalError> {
+    remove_with(&NssUserSource, &SystemAccountsSource)
+}
+
 fn save_with(
     users: &impl UserSource,
     accounts: &impl IconClient,
@@ -79,6 +103,21 @@ fn save_with(
         face_path,
         accounts_error,
     })
+}
+
+fn remove_with(
+    users: &impl UserSource,
+    accounts: &impl IconClient,
+) -> Result<AvatarRemovalOutcome, AvatarRemovalError> {
+    let user = users.current_user()?;
+    let face_path = user.home_directory.join(".face");
+    match fs::remove_file(face_path) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(AvatarRemovalError::Local(error)),
+    }
+    let accounts_error = accounts.clear_icon_file(user.uid).err();
+    Ok(AvatarRemovalOutcome { accounts_error })
 }
 
 fn write_avatar_atomically(path: &Path, png: &[u8]) -> Result<(), LocalAvatarWriteError> {
@@ -189,6 +228,15 @@ mod tests {
                 Ok(())
             }
         }
+
+        fn clear_icon_file(&self, uid: u32) -> Result<(), AccountsError> {
+            self.calls.borrow_mut().push((uid, PathBuf::new()));
+            if self.fail {
+                Err(AccountsError::test_unavailable())
+            } else {
+                Ok(())
+            }
+        }
     }
 
     fn user(home_directory: PathBuf) -> FakeUsers {
@@ -268,5 +316,58 @@ mod tests {
         assert!(matches!(result, Err(AvatarSaveError::Image(_))));
         assert_eq!(fs::read(face).unwrap(), b"old image");
         assert!(accounts.calls.borrow().is_empty());
+    }
+
+    #[test]
+    fn removal_deletes_face_and_clears_accounts_service() {
+        let directory = TestDirectory::new();
+        let face = directory.path().join(".face");
+        fs::write(&face, b"image").unwrap();
+        let accounts = FakeIconClient::default();
+
+        let outcome = remove_with(&user(directory.path().to_owned()), &accounts).unwrap();
+
+        assert!(!face.exists());
+        assert!(outcome.into_accounts_error().is_none());
+        assert_eq!(accounts.calls.into_inner(), vec![(1000, PathBuf::new())]);
+    }
+
+    #[test]
+    fn missing_face_is_already_removed_but_accounts_service_is_still_cleared() {
+        let directory = TestDirectory::new();
+        let accounts = FakeIconClient::default();
+
+        let outcome = remove_with(&user(directory.path().to_owned()), &accounts).unwrap();
+
+        assert!(outcome.into_accounts_error().is_none());
+        assert_eq!(accounts.calls.borrow().len(), 1);
+    }
+
+    #[test]
+    fn local_removal_failure_does_not_clear_accounts_service() {
+        let directory = TestDirectory::new();
+        fs::create_dir(directory.path().join(".face")).unwrap();
+        let accounts = FakeIconClient::default();
+
+        let result = remove_with(&user(directory.path().to_owned()), &accounts);
+
+        assert!(matches!(result, Err(AvatarRemovalError::Local(_))));
+        assert!(accounts.calls.borrow().is_empty());
+    }
+
+    #[test]
+    fn accounts_service_failure_is_reported_after_local_removal() {
+        let directory = TestDirectory::new();
+        let face = directory.path().join(".face");
+        fs::write(&face, b"image").unwrap();
+        let accounts = FakeIconClient {
+            fail: true,
+            ..Default::default()
+        };
+
+        let outcome = remove_with(&user(directory.path().to_owned()), &accounts).unwrap();
+
+        assert!(!face.exists());
+        assert!(outcome.into_accounts_error().is_some());
     }
 }

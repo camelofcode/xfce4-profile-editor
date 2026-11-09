@@ -24,6 +24,7 @@ pub(super) trait EmailClient {
 
 pub(super) trait IconClient {
     fn set_icon_file(&self, uid: u32, path: &Path) -> Result<(), AccountsError>;
+    fn clear_icon_file(&self, uid: u32) -> Result<(), AccountsError>;
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -45,6 +46,10 @@ impl IconClient for SystemAccountsSource {
     fn set_icon_file(&self, uid: u32, path: &Path) -> Result<(), AccountsError> {
         let path = path.to_str().ok_or_else(AccountsError::invalid_icon_path)?;
         zbus::block_on(set_icon_file(uid, path)).map_err(AccountsError::dbus)
+    }
+
+    fn clear_icon_file(&self, uid: u32) -> Result<(), AccountsError> {
+        zbus::block_on(set_icon_file(uid, "")).map_err(AccountsError::dbus)
     }
 }
 
