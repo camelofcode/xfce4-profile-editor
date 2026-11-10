@@ -116,10 +116,12 @@ and Close button.
 - Authentication uses AccountsService/Polkit and a narrowly scoped privileged
   helper where required; the application never collects a password.
 - Development proceeds one reviewable phase at a time. Work remains
-  uncommitted until it has been manually approved, then it is committed and
-  pushed directly to `main` while the repository is private.
-- Pull requests and branch protection will become the normal workflow when the
-  repository is public.
+  uncommitted until it has been manually approved, then it is committed to a
+  topic branch and proposed through a pull request.
+- Protected `main` requires a pull request and a current successful
+  **Build, test, and stage** check. The rule applies to administrators, blocks
+  force pushes and deletion, and requires conversations to be resolved. Zero
+  approving reviews are required so the sole maintainer can merge after CI.
 - Compile-heavy commands select a resource mode from the current machine. The
   netbook favours desktop responsiveness; capable workstations and CI retain
   Cargo's default parallelism. All environments run the same required checks.
@@ -451,8 +453,17 @@ manually accepted on Cinnamon/X11.
 
 A single public-only GitHub Actions job now mirrors those checks on the
 standard Ubuntu 24.04 runner, pins its checkout action, cancels superseded
-runs, and performs no packaging publication. The job remains disabled while
-the repository is private so it cannot consume private Actions minutes.
+runs, and performs no packaging publication. The first public run exposed
+Ubuntu's older Meson package, so CI installs the project's supported Meson
+1.12.0 in an isolated virtual environment. The corrected public run passed
+formatting, strict linting, all test/configuration variants, metadata checks,
+and both Meson build/staging paths.
+
+The repository is public and `main` is protected. Pull requests, the required
+strict CI check, administrator enforcement, resolved conversations, and the
+force-push/deletion prohibitions form the normal contribution path. A direct
+maintainer push was rejected after protection was enabled, confirming that the
+rule applies to the repository owner as intended.
 
 The final repository-layout cleanup consolidates both build entry points under
 `scripts/`: `build-install-launch.sh` remains the supported developer workflow,

@@ -27,6 +27,11 @@ gtk4-builder-tool validate ui/windows/profile-window.ui
 gtk4-builder-tool validate ui/windows/camera-window.ui
 ```
 
+Push the change to a topic branch and open a pull request. Direct pushes to
+`main` are blocked for maintainers as well as contributors. GitHub must report
+the required **Build, test, and stage** check as passing on an up-to-date branch
+before the pull request can be merged.
+
 Changes to user-visible text must remain translatable. Static GtkBuilder text
 uses `translatable="yes"`; runtime presentation text uses `gettext` in the UI
 layer.
