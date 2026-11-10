@@ -38,9 +38,16 @@ jobs:
             meson \
             ninja-build \
             pkg-config \
+            python3-venv \
             sassc \
             xauth \
             xvfb
+
+      - name: Install the supported Meson version
+        run: |
+          python3 -m venv /tmp/meson-venv
+          /tmp/meson-venv/bin/pip install meson==1.12.0
+          echo "/tmp/meson-venv/bin" >> "$GITHUB_PATH"
 
       - name: Install the minimum supported Rust toolchain
         run: |
