@@ -112,10 +112,11 @@ types have entered `src/core/`, `crates/profile-data/`, or
 `crates/profile-helper/`, and review the full diff for missing resources,
 tests, or packaging changes.
 
-GitHub Actions for the private repository must remain cost-conscious: keep one
-standard Linux validation job, cancel superseded runs, avoid scheduled or
-matrix jobs, and retain temporary artifacts for no more than seven days unless
-the implementation plan is deliberately revised. Workflows use read-only token
-permissions by default; only the tag-triggered release job may request
-`contents: write`. Release automation creates a draft for manual verification
-and must never publish a release directly.
+GitHub Actions must remain cost-conscious: keep one standard Linux validation
+job, cancel superseded runs, avoid scheduled or matrix jobs, and retain
+temporary artifacts for no more than seven days unless the implementation plan
+is deliberately revised. Workflows use read-only token permissions by default;
+only the tag-triggered release job may request `contents: write`. Release
+automation creates a draft for manual verification and must never publish a
+release directly. Changes reach protected `main` through pull requests after
+the required validation job passes on an up-to-date branch.
