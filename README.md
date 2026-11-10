@@ -69,7 +69,8 @@ release first, then uses `sudo install` to copy only the three verified files;
 compilation and Meson metadata therefore remain unprivileged. `cycle` performs
 the explicit install followed by launch. The script adapts compiler
 parallelism to the current machine and never invokes the privileged profile
-helper or changes account data.
+helper or changes account data. Repository build scripts, including the
+Meson-to-Cargo driver, are kept together under `scripts/`.
 
 Stage the native installation layout without root access with:
 

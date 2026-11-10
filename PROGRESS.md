@@ -454,6 +454,11 @@ standard Ubuntu 24.04 runner, pins its checkout action, cancels superseded
 runs, and performs no packaging publication. The job remains disabled while
 the repository is private so it cannot consume private Actions minutes.
 
+The final repository-layout cleanup consolidates both build entry points under
+`scripts/`: `build-install-launch.sh` remains the supported developer workflow,
+while Meson invokes the internal `cargo-build.sh` driver from the same
+directory. No parallel build path or behaviour was added.
+
 ## Resuming on another machine
 
 ```sh

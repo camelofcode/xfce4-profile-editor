@@ -99,8 +99,6 @@ translation catalogs. There must not be a second Make-based install path.
 ├── meson.build
 ├── meson_options.txt
 ├── resources.gresource.xml
-├── build-aux/
-│   └── cargo-build.sh
 ├── crates/
 │   ├── profile-data/
 │   │   └── src/lib.rs
@@ -121,7 +119,8 @@ translation catalogs. There must not be a second Make-based install path.
 │   ├── meson.build
 │   └── xfce4-profile-editor.pot
 ├── scripts/
-│   └── build-install-launch.sh
+│   ├── build-install-launch.sh
+│   └── cargo-build.sh
 ├── src/
 │   ├── config.rs
 │   ├── i18n.rs

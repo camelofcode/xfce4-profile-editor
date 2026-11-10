@@ -2,7 +2,7 @@
 
 cargo = find_program('cargo')
 sh = find_program('sh')
-cargo_build_script = files('../build-aux/cargo-build.sh')
+cargo_build_script = files('../scripts/cargo-build.sh')
 cargo_target_dir = meson.project_source_root() / 'target'
 camera_enabled = get_option('camera') ? 'true' : 'false'
 
