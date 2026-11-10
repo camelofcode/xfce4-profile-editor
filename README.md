@@ -38,6 +38,16 @@ Xfce Profile Editor is licensed under the
 [GNU General Public License, version 2 or later](LICENSE)
 (`GPL-2.0-or-later`).
 
+Copyright © 2026 [Chris Clayton](mailto:chris@chrisclayton.dev). See the
+[copyright notice](COPYRIGHT) for details.
+
+## Contributing
+
+Code, documentation, testing, design feedback, and translations are welcome.
+Translators are especially encouraged to help make the application useful
+across the Xfce community. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
+development and translation workflows.
+
 ## Development
 
 The foundation requires Rust 1.92 or newer, Meson 1.4 or newer, GTK 4.10

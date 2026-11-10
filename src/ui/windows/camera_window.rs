@@ -325,6 +325,8 @@ impl CameraWindow {
 
     #[cfg(test)]
     pub(crate) fn exercise_capture_controls_for_test(&self) {
+        assert!(!self.imp().status_label.is_selectable());
+
         let frame = CameraFrame::new(2, 1, vec![80; 6]).unwrap();
         self.show_frame(frame);
         assert!(self.imp().capture_button.is_sensitive());

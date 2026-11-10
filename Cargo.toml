@@ -9,6 +9,7 @@ name = "xfce4-profile-editor"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.92"
+authors = ["Chris Clayton <chris@chrisclayton.dev>"]
 license = "GPL-2.0-or-later"
 description = "A system profile editor for Xfce"
 repository = "https://github.com/camelofcode/xfce4-profile-editor"

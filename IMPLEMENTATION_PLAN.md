@@ -95,6 +95,8 @@ translation catalogs. There must not be a second Make-based install path.
 .
 ├── AGENTS.md
 ├── Cargo.toml
+├── CONTRIBUTING.md
+├── COPYRIGHT
 ├── build.rs
 ├── meson.build
 ├── meson_options.txt

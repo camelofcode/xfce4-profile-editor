@@ -459,6 +459,14 @@ The final repository-layout cleanup consolidates both build entry points under
 while Meson invokes the internal `cargo-build.sh` driver from the same
 directory. No parallel build path or behaviour was added.
 
+The public-readiness polish checkpoint removes accidental text selection from
+the camera startup/status label and adds a display-backed regression assertion.
+Gettext generation now supplies the project name/version, Chris Clayton
+copyright, and maintainer address in the POT header. The repository also gains
+an explicit copyright notice and a contribution guide that particularly
+welcomes translators and documents how to create, update, and validate a PO
+file.
+
 ## Resuming on another machine
 
 ```sh
