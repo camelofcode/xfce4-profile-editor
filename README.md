@@ -1,5 +1,7 @@
 # Xfce Profile Editor
 
+[![CI](https://github.com/camelofcode/xfce4-profile-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/camelofcode/xfce4-profile-editor/actions/workflows/ci.yml)
+
 `xfce4-profile-editor` is a proposed Rust/GTK 4 utility for editing the current
 user's system-backed profile information in Xfce.
 
@@ -8,11 +10,13 @@ Its working name reflects the desktop it is intended to integrate with.
 
 ## Status
 
-The repository is under phased development. Profile reads, the narrowly
-scoped GECOS persistence path, AccountsService email writes, and profile-image
-selection/removal are implemented. Camera capture is implemented; its backend
-has been validated on camera-equipped hardware and the window is awaiting final
-manual acceptance. See
+The repository is a functional work in progress. Profile reads, the narrowly
+scoped GECOS persistence path, AccountsService email writes, profile-image
+selection/removal, and camera capture are implemented. The complete camera
+flow has been manually validated on a camera-equipped Cinnamon/X11 workstation,
+outside the Xfce desktop it is intended to integrate with. Remaining work is
+primarily desktop integration, packaging, interface polish, and additional
+resilience checks. See
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the agreed scope,
 architecture, implementation phases, and acceptance criteria. See
 [PROGRESS.md](PROGRESS.md) for the current implementation and handoff status.

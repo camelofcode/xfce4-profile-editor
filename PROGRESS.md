@@ -1,6 +1,6 @@
 # Project Progress
 
-Last updated: 2026-11-09
+Last updated: 2026-11-10
 
 This file is the concise handoff record for continuing development from a new
 machine or a fresh Codex session. `IMPLEMENTATION_PLAN.md` remains the source of
@@ -10,10 +10,11 @@ completed and what should happen next.
 ## Current position
 
 - Active branch: `main`
-- Last completed phase: Phase 4 — image selection
-- Next phase: Phase 5 — camera capture
-- Last approved commit before this checkpoint: `63ee581` (`Add camera
-  capability discovery`)
+- Last completed phase: Phase 5 — camera capture, including primary
+  camera-equipped hardware acceptance
+- Next phase: Phase 6 — desktop integration and packaging
+- Last approved implementation commit: `0eb256e` (`Add camera capture
+  workflow`)
 - Completed checkpoint: Phase 3a — GECOS persistence security decision
 - Completed checkpoint: Phase 3b — pure helper boundary and tests
 - Completed checkpoint: Phase 3c — one-shot helper runner and Polkit packaging
@@ -34,12 +35,11 @@ completed and what should happen next.
 - Completed checkpoint: Phase 4c — atomic image persistence and AccountsService update
 - Completed checkpoint: Phase 4d — profile-image removal
 - Completed checkpoint: Phase 5a — camera capability and device discovery
-- Implemented checkpoint awaiting review: Phase 5b — camera window, bounded
-  frame pipeline, and avatar-save integration
-- Next checkpoint after approval: Phase 5c — camera-equipped hardware
-  acceptance and any resulting fixes
-- Work awaiting review: Phase 5b changes are uncommitted
-- Expected repository state: modified files for the Phase 5b checkpoint
+- Completed checkpoint: Phase 5b — camera window, bounded frame pipeline, and
+  avatar-save integration
+- Completed checkpoint: Phase 5c — primary camera-equipped hardware acceptance
+- Remaining Phase 5 resilience checks: busy, denied, and unplugged-device paths
+- Expected repository state: clean, with Phase 5b committed on `main`
 
 ## Completed
 
@@ -399,7 +399,7 @@ session does have a working webcam for the Phase 5b acceptance test.
 
 The Phase 5a application smoke test was approved on 2026-11-09.
 
-Phase 5b is implemented and awaiting review. The core opens Nokhwa only on a
+Phase 5b is implemented and approved. The core opens Nokhwa only on a
 dedicated worker, negotiates a safe format close to 640 by 480 at 30 frames per
 second, and replaces a single latest-frame slot so stale frames cannot queue.
 MJPEG uses the existing bounded image decoder; YUYV, NV12, raw RGB/BGR, and
@@ -426,8 +426,33 @@ before its capture-capable `/dev/video0` node. Discovery now filters nodes using
 their V4L2 video-capture and streaming capabilities and sorts the remaining
 devices by real index. The corrected backend path discovered `/dev/video0` and
 captured a decoded 640 by 480 RGB frame on the host. Preview, Capture, Retake,
-Use photo, and device release are awaiting a repeat manual UI test. Busy, denied,
-and unplugged-device behaviour remain additional Phase 5c checks.
+Use photo, and device release were manually verified again on 2026-11-10 using
+the staged release on a camera-equipped Cinnamon/X11 workstation. The complete
+flow worked without GTK warnings despite running outside its intended Xfce
+desktop. Busy, denied, and unplugged-device behaviour remain additional
+resilience checks rather than blockers to publishing the repository as a work
+in progress.
+
+## Public-readiness checkpoint
+
+The 2026-11-10 audit found the repository clean and synchronised with `main`,
+with no common credential signatures or suspicious historical filenames. The
+GPL licence, README, SPDX headers, architecture boundary, and locked dependency
+graph are present. Rust 1.99.1, GTK 4.22.5, Meson 1.12.0, and the documented
+native tools were available on the workstation; no additional development
+packages were required.
+
+Formatting, warnings-as-errors Clippy, all 77 camera-enabled tests, the
+camera-disabled Clippy/test configuration, both GtkBuilder templates, the
+Polkit policy, and the gettext catalogue passed. The safe Meson development
+build completed, and a clean optimised release plus non-root staged
+installation completed and verified. The full camera workflow was then
+manually accepted on Cinnamon/X11.
+
+A single public-only GitHub Actions job now mirrors those checks on the
+standard Ubuntu 24.04 runner, pins its checkout action, cancels superseded
+runs, and performs no packaging publication. The job remains disabled while
+the repository is private so it cannot consume private Actions minutes.
 
 ## Resuming on another machine
 

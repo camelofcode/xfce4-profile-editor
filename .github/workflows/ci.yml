@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Build, test, and stage
+    if: ${{ github.event.repository.private == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            build-essential \
+            clang \
+            gettext \
+            libclang-dev \
+            libgtk-4-dev \
+            libv4l-dev \
+            libxml2-utils \
+            meson \
+            ninja-build \
+            pkg-config \
+            sassc \
+            xauth \
+            xvfb
+
+      - name: Install the minimum supported Rust toolchain
+        run: |
+          rustup toolchain install 1.92.0 --profile minimal --component clippy,rustfmt
+          rustup default 1.92.0
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Lint all features
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+      - name: Test all features
+        env:
+          G_DEBUG: fatal-warnings
+          GSK_RENDERER: cairo
+          GTK_A11Y: none
+        run: xvfb-run --auto-servernum cargo test --locked --workspace --all-features
+
+      - name: Verify the camera-disabled configuration
+        env:
+          G_DEBUG: fatal-warnings
+          GSK_RENDERER: cairo
+          GTK_A11Y: none
+        run: |
+          cargo clippy --locked --workspace --all-targets --no-default-features -- -D warnings
+          xvfb-run --auto-servernum cargo test --locked --workspace --no-default-features
+
+      - name: Validate resources, policy, and translations
+        env:
+          GTK_A11Y: none
+        run: |
+          xvfb-run --auto-servernum gtk4-builder-tool validate ui/windows/profile-window.ui
+          xvfb-run --auto-servernum gtk4-builder-tool validate ui/windows/camera-window.ui
+          xmllint --noout data/polkit/io.github.camelofcode.Xfce4ProfileEditor.policy.in
+          msgfmt --check --check-accelerators=_ -o /tmp/xfce4-profile-editor.mo po/xfce4-profile-editor.pot
+
+      - name: Verify Meson builds and staged installation
+        run: |
+          scripts/build-install-launch.sh build
+          scripts/build-install-launch.sh stage
