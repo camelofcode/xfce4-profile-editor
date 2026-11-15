@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+//! Current-profile loading and local avatar candidates.
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
-use super::account_service::{AccountDetails, AccountsError, load_account_details};
+use super::accounts::{AccountDetails, AccountsError, load_account_details};
 use super::current_user::{CurrentUser, CurrentUserError, current_user};
-use super::display_name_persistence::DisplayNameState;
+use super::display_name::DisplayNameState;
 use super::image::MAX_SOURCE_BYTES;
 
 #[derive(Clone, Debug, Eq, PartialEq)]

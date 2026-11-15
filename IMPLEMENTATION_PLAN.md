@@ -112,13 +112,18 @@ Cargo home and workspace `target/` cache. There is no parallel Makefile path.
 │   └── cargo-build.sh
 ├── src/
 │   ├── core/
-│   │   ├── account_service.rs
-│   │   ├── avatar_persistence.rs
-│   │   ├── camera.rs
-│   │   ├── current_user.rs
-│   │   ├── display_name_persistence.rs
-│   │   ├── image.rs
-│   │   └── profile_loader.rs
+│   │   ├── camera/
+│   │   │   ├── capture.rs
+│   │   │   └── mod.rs
+│   │   ├── profile/
+│   │   │   ├── accounts.rs
+│   │   │   ├── avatar.rs
+│   │   │   ├── current_user.rs
+│   │   │   ├── display_name.rs
+│   │   │   ├── image.rs
+│   │   │   ├── loader.rs
+│   │   │   └── mod.rs
+│   │   └── mod.rs
 │   └── ui/
 │       └── windows/
 │           ├── camera_window.rs
@@ -135,6 +140,11 @@ properties belong in `ui/`. Styling belongs in `ui/sass/`. GTK signal wiring,
 window lifecycle, and presentation state belong in `src/ui/`. AccountsService,
 current-process identity, image transformation, camera capture, validation,
 and persistence belong in `src/core/`.
+
+Core code is grouped by product domain rather than technical layer. The
+`profile` domain keeps its data and AccountsService/filesystem behaviour
+together; the `camera` domain owns device discovery, frame capture, and its
+worker lifecycle. `src/core/mod.rs` is the single façade consumed by the UI.
 
 Dependency direction is always `src/ui/ -> src/core/`. Core APIs use plain
 Rust values and typed errors and must not import GTK or GDK.

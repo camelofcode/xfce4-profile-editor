@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! Current-user identity needed for local profile-image access.
+//! Current-user identity needed by the profile domain.
 
 use std::ffi::OsString;
 use std::path::PathBuf;

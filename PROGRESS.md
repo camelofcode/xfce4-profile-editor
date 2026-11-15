@@ -48,6 +48,9 @@ Implemented in the worktree:
   plain functions, using closures only at the internal test seams;
 - added a required repository skill covering function-versus-struct choices,
   trait use, typed enums, wrapper types, visibility, and structural review;
+- grouped core code into cohesive `profile` and `camera` domains, with camera
+  capture isolated from device discovery and `core/mod.rs` retained as the UI
+  façade;
 - updated CI, translation inputs, repository guidance, plan, and packaging
   documentation for the reduced architecture;
 - reduced the profile window from 560×600 to a fixed 460×360 and removed the

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! AccountsService-backed persistence for the current user's display name.
+//! AccountsService-backed display-name state and persistence.
 
-use super::account_service::{AccountsError, set_display_name};
+use super::accounts::{AccountsError, set_display_name};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct DisplayNameState {

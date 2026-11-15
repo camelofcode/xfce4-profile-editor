@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! Bounded, GTK-independent profile-image normalisation.
+//! Bounded, GTK-independent avatar normalisation.
 
 use std::fs::File;
 use std::io::{Cursor, Read};

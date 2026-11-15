@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! Atomic local avatar persistence and AccountsService coordination.
+//! Atomic profile-avatar persistence and AccountsService coordination.
 
 use std::fs::{self, File, OpenOptions, Permissions};
 use std::io::Write;
@@ -10,11 +10,13 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use thiserror::Error;
 
-use super::account_service::{AccountsError, clear_account_icon, set_account_icon};
+use super::accounts::{AccountsError, clear_account_icon, set_account_icon};
 use super::current_user::{CurrentUser, CurrentUserError, current_user};
+#[cfg(feature = "camera")]
+use super::image::normalise_avatar_rgb;
 use super::image::{ImageNormalisationError, normalise_avatar_file};
 #[cfg(feature = "camera")]
-use super::{CameraFrame, image::normalise_avatar_rgb};
+use crate::core::camera::CameraFrame;
 
 const FACE_FILE_MODE: u32 = 0o644;
 const TEMPORARY_FILE_MODE: u32 = 0o600;
@@ -190,7 +192,7 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
 
     use super::*;
-    use crate::core::current_user::CurrentUser;
+    use crate::core::profile::current_user::CurrentUser;
     use image::codecs::png::PngEncoder;
     use image::{ExtendedColorType, ImageEncoder, Rgba, RgbaImage};
 

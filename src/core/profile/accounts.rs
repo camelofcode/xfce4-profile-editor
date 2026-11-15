@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! AccountsService access for the current profile.
+//! AccountsService access for profile data.
 
 use std::path::{Path, PathBuf};
 
