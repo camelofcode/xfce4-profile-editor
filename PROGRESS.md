@@ -29,15 +29,23 @@ Implemented in the worktree:
 - replaced first name, last name, office phone, home phone, and email with one
   **Display name** field;
 - changed name loading/writing to AccountsService `RealName`/`SetRealName`;
-- retained NSS/GECOS full name only as a read-only fallback when
-  AccountsService is unavailable;
-- retained close-time dirty-state saving and recoverable errors;
+- removed the remaining passwd/GECOS parser and display-name fallback;
+- reduced current-user resolution to the effective UID and the desktop
+  session's absolute home directory, which are the only values needed for
+  AccountsService and `~/.face`;
+- removed legacy GECOS character validation and delegated display-name policy
+  to AccountsService;
+- retained close-time dirty-state saving and recoverable write errors;
 - removed the shared GECOS crate, privileged-helper crate, helper client,
   combined profile transaction, email persistence, JSON protocol, and project
   Polkit policy;
 - reduced Meson packaging to the application binary;
 - removed the empty packaging-data scaffold and legacy helper/policy migration
   path; staged installs are rebuilt from a clean generated destination;
+- removed the one-shot `ProfileStore` and `Profile` wrappers, the redundant
+  avatar-source variants, and an unused camera-description field;
+- replaced stateless current-user and AccountsService adapter structs with
+  plain functions, using closures only at the internal test seams;
 - updated CI, translation inputs, repository guidance, plan, and packaging
   documentation for the reduced architecture;
 - reduced the profile window from 560×600 to a fixed 460×360 and removed the
@@ -55,9 +63,9 @@ Verification completed:
 - the changed GtkBuilder profile template validates (Mesa warnings only);
 - Clippy passes with warnings denied for all features and with camera support
   disabled;
-- all-feature testing passes with 36 unit tests plus the embedded-resource
+- all-feature testing passes with 35 unit tests plus the embedded-resource
   integration test, including the display-backed window flow;
-- camera-disabled testing passes with 25 unit tests plus the resource test;
+- camera-disabled testing passes with 24 unit tests plus the resource test;
 - gettext extraction and message validation pass with the reduced string set;
 - the release stage contains only `usr/bin/xfce4-profile-editor` at mode `0755`;
 - `src/core/` contains no GTK/GDK imports;
@@ -76,9 +84,9 @@ Verification completed:
 
 ### Phase 2 — profile reads
 
-- NSS current-user lookup and AccountsService integration.
-- Asynchronous loading, avatar fallback, degraded-service warnings, and a
-  small-screen-friendly Whisker-styled window.
+- Effective-UID/session-home lookup and AccountsService integration.
+- Asynchronous loading, local avatar fallback, degraded-service warnings, and
+  a small-screen-friendly Whisker-styled window.
 
 ### Former Phase 3 — full profile persistence
 

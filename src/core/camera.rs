@@ -24,17 +24,12 @@ pub(crate) enum CameraAvailability {
 pub(crate) struct CameraDevice {
     index: u32,
     name: String,
-    description: String,
 }
 
 #[cfg(feature = "camera")]
 impl CameraDevice {
-    fn new(index: u32, name: String, description: String) -> Self {
-        Self {
-            index,
-            name,
-            description,
-        }
+    fn new(index: u32, name: String) -> Self {
+        Self { index, name }
     }
 
     pub(crate) fn name(&self) -> &str {
@@ -109,11 +104,7 @@ fn query_v4l_capture_devices() -> Result<Vec<CameraDevice>, CameraDiscoveryError
         }
 
         let name = node.name().unwrap_or_else(|| capabilities.card.clone());
-        devices.push(CameraDevice::new(
-            index,
-            name,
-            format!("Video4Linux capture device at {}", node.path().display()),
-        ));
+        devices.push(CameraDevice::new(index, name));
     }
     devices.sort_by_key(|device| device.index);
 
@@ -698,16 +689,8 @@ mod tests {
     #[test]
     fn preserves_every_discovered_device_and_its_real_index() {
         let devices = vec![
-            CameraDevice::new(
-                2,
-                "Integrated camera".to_owned(),
-                "Video4Linux device at /dev/video2".to_owned(),
-            ),
-            CameraDevice::new(
-                7,
-                "USB camera".to_owned(),
-                "Video4Linux device at /dev/video7".to_owned(),
-            ),
+            CameraDevice::new(2, "Integrated camera".to_owned()),
+            CameraDevice::new(7, "USB camera".to_owned()),
         ];
 
         assert_eq!(

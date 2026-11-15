@@ -59,7 +59,7 @@ There is one authoritative system interface for each editable value.
 
 | UI value | Authoritative storage/interface | Notes |
 | --- | --- | --- |
-| Display name | AccountsService `RealName` / `SetRealName` | NSS/GECOS is a read-only fallback when AccountsService is unavailable. |
+| Display name | AccountsService `RealName` / `SetRealName` | Editing is disabled when AccountsService is unavailable. |
 | Profile image | `~/.face` and AccountsService `IconFile` | Keep both Whisker-facing consumers in sync. |
 
 AccountsService is distribution-provided and may apply its own Polkit policy.
@@ -115,11 +115,10 @@ Cargo home and workspace `target/` cache. There is no parallel Makefile path.
 │   │   ├── account_service.rs
 │   │   ├── avatar_persistence.rs
 │   │   ├── camera.rs
+│   │   ├── current_user.rs
 │   │   ├── display_name_persistence.rs
 │   │   ├── image.rs
-│   │   ├── profile.rs
-│   │   ├── profile_store.rs
-│   │   └── user.rs
+│   │   └── profile_loader.rs
 │   └── ui/
 │       └── windows/
 │           ├── camera_window.rs
@@ -134,38 +133,40 @@ Cargo home and workspace `target/` cache. There is no parallel Makefile path.
 Static hierarchy, spacing, labels, accessibility relationships, and widget
 properties belong in `ui/`. Styling belongs in `ui/sass/`. GTK signal wiring,
 window lifecycle, and presentation state belong in `src/ui/`. AccountsService,
-NSS lookup, image transformation, camera capture, validation, and persistence
-belong in `src/core/`.
+current-process identity, image transformation, camera capture, validation,
+and persistence belong in `src/core/`.
 
 Dependency direction is always `src/ui/ -> src/core/`. Core APIs use plain
 Rust values and typed errors and must not import GTK or GDK.
 
-## 6. Core model and loading
+## 6. Core loading
 
-The main model remains small:
+The load result remains small:
 
 ```rust
-struct Profile {
+struct LoadedProfile {
     display_name: String,
     avatars: Vec<Avatar>,
+    warnings: Vec<LoadWarning>,
+    display_name_state: Option<DisplayNameState>,
 }
 ```
 
 Loading runs outside the GTK main thread:
 
-1. Resolve the current UID and home directory through NSS-safe APIs.
+1. Resolve the effective UID from the kernel and the home directory from the
+   desktop session's absolute `HOME` value.
 2. Read AccountsService `RealName` and `IconFile`.
-3. Use the NSS/GECOS full-name portion only as a display fallback if
-   AccountsService is unavailable; keep name editing disabled in that state.
+3. Keep name editing disabled and report a recoverable warning if
+   AccountsService is unavailable; do not parse passwd/GECOS as a fallback.
 4. Prefer a valid `~/.face`, then a valid AccountsService icon, then the themed
    default avatar.
 5. Report degraded AccountsService and unreadable-image states as recoverable
    warnings.
 
-Display-name validation trims surrounding whitespace and rejects values that
-cannot safely pass through the conventional account comment representation,
-including commas, colons, newlines, NULs, control characters, and excessive
-length. An empty display name is allowed.
+Display names are trimmed before comparison and saving. AccountsService owns
+the accepted-value policy and reports unsupported values as recoverable write
+errors; the application does not impose passwd/GECOS formatting rules.
 
 ## 7. Main window and save flow
 
@@ -188,8 +189,8 @@ photo. Take photo is hidden when camera support is unavailable.
 There is no Save or Cancel button:
 
 - mark the display name dirty while typing;
-- validate after a short idle debounce and on focus loss;
-- show a concise unsaved state without writing on every keystroke or blur;
+- show a concise unsaved state after a short idle debounce or focus loss,
+  without writing on every keystroke or blur;
 - save once through AccountsService when the window closes;
 - keep the window open and retain the edit if the write fails;
 - keep all D-Bus and image work off the GTK main thread.
@@ -243,7 +244,7 @@ loading, warnings, and the read-only UI are established.
 - Write through AccountsService `SetRealName` only.
 - Remove the helper, shared GECOS crate, helper crate, JSON protocol, project
   Polkit policy, and their package artifacts.
-- Retain validation, dirty-state, close-time save, and recoverable errors.
+- Retain normalization, dirty-state, close-time save, and recoverable errors.
 
 Completion: the installed application changes the Whisker-visible display name
 and requires no project-owned privileged component.
@@ -283,8 +284,8 @@ for manual verification and must never publish directly.
 
 Automated coverage includes:
 
-- AccountsService-backed display-name validation and fake-client persistence;
-- NSS current-user parsing and degraded AccountsService fallback;
+- AccountsService-backed display-name state and fake-client persistence;
+- current-process UID/home resolution and degraded AccountsService handling;
 - image orientation, crop, resize, size limits, atomic write, and removal;
 - resource loading and display-backed window lifecycle;
 - camera discovery and fake-frame capture paths;

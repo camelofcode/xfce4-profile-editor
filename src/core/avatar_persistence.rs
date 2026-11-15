@@ -10,9 +10,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use thiserror::Error;
 
-use super::account_service::{AccountsError, IconClient, SystemAccountsSource};
+use super::account_service::{AccountsError, clear_account_icon, set_account_icon};
+use super::current_user::{CurrentUser, CurrentUserError, current_user};
 use super::image::{ImageNormalisationError, normalise_avatar_file};
-use super::user::{NssUserSource, UserLookupError, UserSource};
 #[cfg(feature = "camera")]
 use super::{CameraFrame, image::normalise_avatar_rgb};
 
@@ -28,18 +28,6 @@ pub(crate) struct AvatarSaveOutcome {
     accounts_error: Option<AccountsError>,
 }
 
-#[derive(Debug)]
-pub(crate) struct AvatarRemovalOutcome {
-    accounts_error: Option<AccountsError>,
-}
-
-impl AvatarRemovalOutcome {
-    #[must_use]
-    pub(crate) fn into_accounts_error(self) -> Option<AccountsError> {
-        self.accounts_error
-    }
-}
-
 impl AvatarSaveOutcome {
     #[must_use]
     pub(crate) fn into_parts(self) -> (Vec<u8>, PathBuf, Option<AccountsError>) {
@@ -50,7 +38,7 @@ impl AvatarSaveOutcome {
 #[derive(Debug, Error)]
 pub(crate) enum AvatarSaveError {
     #[error("the current user account could not be read: {0}")]
-    User(#[from] UserLookupError),
+    User(#[from] CurrentUserError),
     #[error(transparent)]
     Image(#[from] ImageNormalisationError),
     #[error(transparent)]
@@ -60,7 +48,7 @@ pub(crate) enum AvatarSaveError {
 #[derive(Debug, Error)]
 pub(crate) enum AvatarRemovalError {
     #[error("the current user account could not be read: {0}")]
-    User(#[from] UserLookupError),
+    User(#[from] CurrentUserError),
     #[error("the local profile image could not be removed: {0}")]
     Local(#[source] std::io::Error),
 }
@@ -82,49 +70,52 @@ pub(crate) enum LocalAvatarWriteError {
 pub(crate) fn save_current_avatar(
     source_path: PathBuf,
 ) -> Result<AvatarSaveOutcome, AvatarSaveError> {
-    save_with(&NssUserSource, &SystemAccountsSource, &source_path)
+    let png = normalise_avatar_file(&source_path)?;
+    save_normalised_with(current_user()?, set_account_icon, png)
 }
 
 #[cfg(feature = "camera")]
 pub(crate) fn save_current_camera_avatar(
     frame: CameraFrame,
 ) -> Result<AvatarSaveOutcome, AvatarSaveError> {
-    save_camera_with(&NssUserSource, &SystemAccountsSource, frame)
+    let (width, height, rgb) = frame.into_parts();
+    let png = normalise_avatar_rgb(width, height, rgb)?;
+    save_normalised_with(current_user()?, set_account_icon, png)
 }
 
-pub(crate) fn remove_current_avatar() -> Result<AvatarRemovalOutcome, AvatarRemovalError> {
-    remove_with(&NssUserSource, &SystemAccountsSource)
+pub(crate) fn remove_current_avatar() -> Result<Option<AccountsError>, AvatarRemovalError> {
+    remove_with(current_user()?, clear_account_icon)
 }
 
+#[cfg(test)]
 fn save_with(
-    users: &impl UserSource,
-    accounts: &impl IconClient,
+    user: CurrentUser,
+    set_icon: impl FnOnce(u32, &Path) -> Result<(), AccountsError>,
     source_path: &Path,
 ) -> Result<AvatarSaveOutcome, AvatarSaveError> {
     let png = normalise_avatar_file(source_path)?;
-    save_normalised_with(users, accounts, png)
+    save_normalised_with(user, set_icon, png)
 }
 
-#[cfg(feature = "camera")]
+#[cfg(all(feature = "camera", test))]
 fn save_camera_with(
-    users: &impl UserSource,
-    accounts: &impl IconClient,
+    user: CurrentUser,
+    set_icon: impl FnOnce(u32, &Path) -> Result<(), AccountsError>,
     frame: CameraFrame,
 ) -> Result<AvatarSaveOutcome, AvatarSaveError> {
     let (width, height, rgb) = frame.into_parts();
     let png = normalise_avatar_rgb(width, height, rgb)?;
-    save_normalised_with(users, accounts, png)
+    save_normalised_with(user, set_icon, png)
 }
 
 fn save_normalised_with(
-    users: &impl UserSource,
-    accounts: &impl IconClient,
+    user: CurrentUser,
+    set_icon: impl FnOnce(u32, &Path) -> Result<(), AccountsError>,
     png: Vec<u8>,
 ) -> Result<AvatarSaveOutcome, AvatarSaveError> {
-    let user = users.current_user()?;
     let face_path = user.home_directory.join(".face");
     write_avatar_atomically(&face_path, &png)?;
-    let accounts_error = accounts.set_icon_file(user.uid, &face_path).err();
+    let accounts_error = set_icon(user.uid, &face_path).err();
 
     Ok(AvatarSaveOutcome {
         png,
@@ -134,18 +125,16 @@ fn save_normalised_with(
 }
 
 fn remove_with(
-    users: &impl UserSource,
-    accounts: &impl IconClient,
-) -> Result<AvatarRemovalOutcome, AvatarRemovalError> {
-    let user = users.current_user()?;
+    user: CurrentUser,
+    clear_icon: impl FnOnce(u32) -> Result<(), AccountsError>,
+) -> Result<Option<AccountsError>, AvatarRemovalError> {
     let face_path = user.home_directory.join(".face");
     match fs::remove_file(face_path) {
         Ok(()) => {}
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(AvatarRemovalError::Local(error)),
     }
-    let accounts_error = accounts.clear_icon_file(user.uid).err();
-    Ok(AvatarRemovalOutcome { accounts_error })
+    Ok(clear_icon(user.uid).err())
 }
 
 fn write_avatar_atomically(path: &Path, png: &[u8]) -> Result<(), LocalAvatarWriteError> {
@@ -201,7 +190,7 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
 
     use super::*;
-    use crate::core::user::UserRecord;
+    use crate::core::current_user::CurrentUser;
     use image::codecs::png::PngEncoder;
     use image::{ExtendedColorType, ImageEncoder, Rgba, RgbaImage};
 
@@ -231,25 +220,17 @@ mod tests {
         }
     }
 
-    struct FakeUsers(UserRecord);
-
-    impl UserSource for FakeUsers {
-        fn current_user(&self) -> Result<UserRecord, UserLookupError> {
-            Ok(self.0.clone())
-        }
-    }
-
     #[derive(Default)]
     struct FakeIconClient {
         calls: RefCell<Vec<(u32, PathBuf)>>,
         fail: bool,
     }
 
-    impl IconClient for FakeIconClient {
+    impl FakeIconClient {
         fn set_icon_file(&self, uid: u32, path: &Path) -> Result<(), AccountsError> {
             self.calls.borrow_mut().push((uid, path.to_owned()));
             if self.fail {
-                Err(AccountsError::test_unavailable())
+                Err(AccountsError::TestUnavailable)
             } else {
                 Ok(())
             }
@@ -258,19 +239,18 @@ mod tests {
         fn clear_icon_file(&self, uid: u32) -> Result<(), AccountsError> {
             self.calls.borrow_mut().push((uid, PathBuf::new()));
             if self.fail {
-                Err(AccountsError::test_unavailable())
+                Err(AccountsError::TestUnavailable)
             } else {
                 Ok(())
             }
         }
     }
 
-    fn user(home_directory: PathBuf) -> FakeUsers {
-        FakeUsers(UserRecord {
+    fn user(home_directory: PathBuf) -> CurrentUser {
+        CurrentUser {
             uid: 1000,
             home_directory,
-            display_name: "Ada Lovelace".to_owned(),
-        })
+        }
     }
 
     fn source_png(path: &Path) {
@@ -296,7 +276,12 @@ mod tests {
         fs::write(&face, b"old image").unwrap();
         let accounts = FakeIconClient::default();
 
-        let outcome = save_with(&user(directory.path().to_owned()), &accounts, &source).unwrap();
+        let outcome = save_with(
+            user(directory.path().to_owned()),
+            |uid, path| accounts.set_icon_file(uid, path),
+            &source,
+        )
+        .unwrap();
         let (png, face_path, accounts_error) = outcome.into_parts();
 
         assert_eq!(face_path, face);
@@ -320,7 +305,12 @@ mod tests {
             ..Default::default()
         };
 
-        let outcome = save_with(&user(directory.path().to_owned()), &accounts, &source).unwrap();
+        let outcome = save_with(
+            user(directory.path().to_owned()),
+            |uid, path| accounts.set_icon_file(uid, path),
+            &source,
+        )
+        .unwrap();
         let (png, face_path, accounts_error) = outcome.into_parts();
 
         assert_eq!(fs::read(face_path).unwrap(), png);
@@ -335,8 +325,12 @@ mod tests {
         let accounts = FakeIconClient::default();
         let frame = CameraFrame::new(4, 2, vec![80; 4 * 2 * 3]).unwrap();
 
-        let outcome =
-            save_camera_with(&user(directory.path().to_owned()), &accounts, frame).unwrap();
+        let outcome = save_camera_with(
+            user(directory.path().to_owned()),
+            |uid, path| accounts.set_icon_file(uid, path),
+            frame,
+        )
+        .unwrap();
         let (png, face_path, accounts_error) = outcome.into_parts();
 
         assert_eq!(face_path, face);
@@ -354,7 +348,11 @@ mod tests {
         fs::write(&face, b"old image").unwrap();
         let accounts = FakeIconClient::default();
 
-        let result = save_with(&user(directory.path().to_owned()), &accounts, &source);
+        let result = save_with(
+            user(directory.path().to_owned()),
+            |uid, path| accounts.set_icon_file(uid, path),
+            &source,
+        );
 
         assert!(matches!(result, Err(AvatarSaveError::Image(_))));
         assert_eq!(fs::read(face).unwrap(), b"old image");
@@ -368,10 +366,13 @@ mod tests {
         fs::write(&face, b"image").unwrap();
         let accounts = FakeIconClient::default();
 
-        let outcome = remove_with(&user(directory.path().to_owned()), &accounts).unwrap();
+        let outcome = remove_with(user(directory.path().to_owned()), |uid| {
+            accounts.clear_icon_file(uid)
+        })
+        .unwrap();
 
         assert!(!face.exists());
-        assert!(outcome.into_accounts_error().is_none());
+        assert!(outcome.is_none());
         assert_eq!(accounts.calls.into_inner(), vec![(1000, PathBuf::new())]);
     }
 
@@ -380,9 +381,12 @@ mod tests {
         let directory = TestDirectory::new();
         let accounts = FakeIconClient::default();
 
-        let outcome = remove_with(&user(directory.path().to_owned()), &accounts).unwrap();
+        let outcome = remove_with(user(directory.path().to_owned()), |uid| {
+            accounts.clear_icon_file(uid)
+        })
+        .unwrap();
 
-        assert!(outcome.into_accounts_error().is_none());
+        assert!(outcome.is_none());
         assert_eq!(accounts.calls.borrow().len(), 1);
     }
 
@@ -392,7 +396,9 @@ mod tests {
         fs::create_dir(directory.path().join(".face")).unwrap();
         let accounts = FakeIconClient::default();
 
-        let result = remove_with(&user(directory.path().to_owned()), &accounts);
+        let result = remove_with(user(directory.path().to_owned()), |uid| {
+            accounts.clear_icon_file(uid)
+        });
 
         assert!(matches!(result, Err(AvatarRemovalError::Local(_))));
         assert!(accounts.calls.borrow().is_empty());
@@ -408,9 +414,12 @@ mod tests {
             ..Default::default()
         };
 
-        let outcome = remove_with(&user(directory.path().to_owned()), &accounts).unwrap();
+        let outcome = remove_with(user(directory.path().to_owned()), |uid| {
+            accounts.clear_icon_file(uid)
+        })
+        .unwrap();
 
         assert!(!face.exists());
-        assert!(outcome.into_accounts_error().is_some());
+        assert!(outcome.is_some());
     }
 }

@@ -67,7 +67,7 @@ pub(crate) fn normalise_avatar_file(path: &Path) -> Result<Vec<u8>, ImageNormali
 }
 
 /// Decodes an image, applies its embedded orientation, and returns a square PNG.
-pub(crate) fn normalise_avatar(source: &[u8]) -> Result<Vec<u8>, ImageNormalisationError> {
+fn normalise_avatar(source: &[u8]) -> Result<Vec<u8>, ImageNormalisationError> {
     if source.is_empty() {
         return Err(ImageNormalisationError::Empty);
     }

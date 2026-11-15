@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Xfce Profile Editor 0.1.0\n"
 "Report-Msgid-Bugs-To: chris@chrisclayton.dev\n"
-"POT-Creation-Date: 2026-11-15 22:02+0000\n"
-"PO-Revision-Date: 2026-11-15 22:02+0000\n"
+"POT-Creation-Date: 2026-11-15 22:49+0000\n"
+"PO-Revision-Date: 2026-11-15 22:49+0000\n"
 "Last-Translator: Chris Clayton <chris@chrisclayton.dev>\n"
 "Language-Team: Xfce Profile Editor translators <chris@chrisclayton.dev>\n"
 "Language: en_GB\n"
@@ -75,138 +75,130 @@ msgstr ""
 msgid "Use photo"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:178
+#: src/ui/windows/profile_window.rs:182
 msgid "The current user account could not be read."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:180
+#: src/ui/windows/profile_window.rs:184
 msgid "Profile loading stopped unexpectedly."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:264
+#: src/ui/windows/profile_window.rs:265
 msgid "Profile image"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:289
+#: src/ui/windows/profile_window.rs:290
 msgid "Images"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:299
+#: src/ui/windows/profile_window.rs:300
 msgid "Choose a profile image"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:317
+#: src/ui/windows/profile_window.rs:318
 msgid "Only local image files can be used."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:331
+#: src/ui/windows/profile_window.rs:332
 msgid "The image chooser could not be opened."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:342 src/ui/windows/profile_window.rs:359
+#: src/ui/windows/profile_window.rs:343 src/ui/windows/profile_window.rs:360
 msgid "Saving profile image…"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:386
+#: src/ui/windows/profile_window.rs:387
 msgid "Profile image saving stopped unexpectedly."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:402
+#: src/ui/windows/profile_window.rs:403
 msgid "Selected photo"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:413
+#: src/ui/windows/profile_window.rs:414
 msgid ""
 "The profile image was saved locally, but AccountsService could not be "
 "updated."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:418
+#: src/ui/windows/profile_window.rs:419
 msgid "Profile image saved."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:424
+#: src/ui/windows/profile_window.rs:425
 msgid "The photo preview could not be displayed."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:437
+#: src/ui/windows/profile_window.rs:438
 msgid "Removing profile image…"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:470
+#: src/ui/windows/profile_window.rs:471
 msgid ""
 "The local profile image was removed, but AccountsService could not be "
 "updated."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:475
+#: src/ui/windows/profile_window.rs:476
 msgid "Profile image removed."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:487
+#: src/ui/windows/profile_window.rs:488
 msgid "Profile image removal stopped unexpectedly."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:571
-msgid "The display name is not valid."
-msgstr ""
-
-#: src/ui/windows/profile_window.rs:578
+#: src/ui/windows/profile_window.rs:567
 msgid "Unsaved profile changes."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:605
+#: src/ui/windows/profile_window.rs:594
 msgid "Saving profile…"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:641
+#: src/ui/windows/profile_window.rs:619
+msgid "The display name could not be saved. It is still in the form."
+msgstr ""
+
+#: src/ui/windows/profile_window.rs:625
 msgid "Profile saving stopped unexpectedly."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:653
+#: src/ui/windows/profile_window.rs:637
 msgid "Profile saved."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:733
+#: src/ui/windows/profile_window.rs:717
 msgid "The selected image could not be used."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:735
+#: src/ui/windows/profile_window.rs:719
 msgid ""
 "The current user account could not be read. The profile image was not saved."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:737
+#: src/ui/windows/profile_window.rs:721
 msgid "The profile image could not be saved."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:744
+#: src/ui/windows/profile_window.rs:728
 msgid ""
 "The current user account could not be read. The profile image was not "
 "removed."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:746
+#: src/ui/windows/profile_window.rs:730
 msgid "The profile image could not be removed."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:753
-msgid "The display name is not valid. Your change was not saved."
-msgstr ""
-
-#: src/ui/windows/profile_window.rs:756
-msgid "The display name could not be saved. It is still in the form."
-msgstr ""
-
-#: src/ui/windows/profile_window.rs:772
+#: src/ui/windows/profile_window.rs:745
 msgid "Some profile information could not be loaded."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:785
+#: src/ui/windows/profile_window.rs:758
 msgid "AccountsService profile information could not be read."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:789
+#: src/ui/windows/profile_window.rs:762
 msgid "A profile image could not be used."
 msgstr ""
 

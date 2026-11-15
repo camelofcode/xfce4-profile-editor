@@ -9,10 +9,9 @@ use gtk::subclass::prelude::*;
 use gtk::{gio, glib};
 
 use crate::core::{
-    AvatarRemovalError, AvatarRemovalOutcome, AvatarSaveError, AvatarSaveOutcome,
-    CameraAvailability, CameraDiscoveryError, DisplayNameSaveOutcome, DisplayNameState,
-    DisplayNameWriteError, LoadWarning, LoadedProfile, Profile, ProfileStore,
-    SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES, discover_cameras,
+    AvatarRemovalError, AvatarSaveError, AvatarSaveOutcome, CameraAvailability,
+    CameraDiscoveryError, DisplayNameSaveOutcome, DisplayNameState, LoadWarning, LoadedProfile,
+    SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES, discover_cameras, load_current_profile,
     remove_current_avatar, save_current_avatar, save_current_display_name,
 };
 #[cfg(feature = "camera")]
@@ -20,9 +19,11 @@ use crate::core::{CameraDevice, CameraFrame, save_current_camera_avatar};
 #[cfg(feature = "camera")]
 use crate::ui::windows::CameraWindow;
 
-const VALIDATION_DEBOUNCE: Duration = Duration::from_millis(500);
-type DisplayNameSaveTaskResult =
-    Result<Result<DisplayNameSaveOutcome, DisplayNameWriteError>, Box<dyn std::any::Any + Send>>;
+const EDIT_STATUS_DEBOUNCE: Duration = Duration::from_millis(500);
+type DisplayNameSaveTaskResult = Result<
+    Result<DisplayNameSaveOutcome, crate::core::AccountsError>,
+    Box<dyn std::any::Any + Send>,
+>;
 
 mod imp {
     use super::*;
@@ -55,7 +56,7 @@ mod imp {
         pub(super) camera_availability:
             RefCell<Option<Result<CameraAvailability, CameraDiscoveryError>>>,
         pub(super) load_warnings: RefCell<Vec<LoadWarning>>,
-        pub(super) validation_timeout: RefCell<Option<glib::SourceId>>,
+        pub(super) edit_status_timeout: RefCell<Option<glib::SourceId>>,
         pub(super) save_running: Cell<bool>,
         pub(super) close_after_save: Cell<bool>,
         pub(super) avatar_present: Cell<bool>,
@@ -124,8 +125,8 @@ mod imp {
             let weak_window = window.downgrade();
             focus.connect_leave(move |_| {
                 if let Some(window) = weak_window.upgrade() {
-                    window.cancel_validation_timeout();
-                    window.validate_profile_edit();
+                    window.cancel_edit_status_timeout();
+                    window.show_profile_edit_status();
                 }
             });
             self.display_name_entry.add_controller(focus);
@@ -134,7 +135,7 @@ mod imp {
         }
 
         fn dispose(&self) {
-            if let Some(source) = self.validation_timeout.borrow_mut().take() {
+            if let Some(source) = self.edit_status_timeout.borrow_mut().take() {
                 source.remove();
             }
         }
@@ -170,7 +171,7 @@ impl ProfileWindow {
     fn load_profile(&self) {
         let weak_window = self.downgrade();
         glib::spawn_future_local(async move {
-            let result = gio::spawn_blocking(ProfileStore::load_current).await;
+            let result = gio::spawn_blocking(load_current_profile).await;
             let Some(window) = weak_window.upgrade() else {
                 return;
             };
@@ -242,14 +243,11 @@ impl ProfileWindow {
     fn show_profile(&self, loaded: LoadedProfile) {
         let imp = self.imp();
         let LoadedProfile {
-            profile,
+            display_name,
+            avatars,
             warnings,
             display_name_state,
         } = loaded;
-        let Profile {
-            display_name,
-            avatars,
-        } = profile;
 
         imp.display_name_entry.set_text(&display_name);
         imp.display_name_entry
@@ -452,7 +450,7 @@ impl ProfileWindow {
     fn finish_avatar_removal_result(
         &self,
         result: Result<
-            Result<AvatarRemovalOutcome, AvatarRemovalError>,
+            Result<Option<crate::core::AccountsError>, AvatarRemovalError>,
             Box<dyn std::any::Any + Send>,
         >,
     ) {
@@ -465,7 +463,7 @@ impl ProfileWindow {
                 imp.avatar_picture.set_visible(false);
                 imp.avatar_present.set(false);
                 imp.remove_photo_button.set_sensitive(false);
-                match outcome.into_accounts_error() {
+                match outcome {
                     Some(error) => {
                         let diagnostic = error.to_string();
                         self.show_warning_status(
@@ -535,29 +533,29 @@ impl ProfileWindow {
             return;
         }
         if !self.display_name_is_dirty() {
-            self.cancel_validation_timeout();
+            self.cancel_edit_status_timeout();
             self.show_loaded_warnings();
             return;
         }
 
-        self.cancel_validation_timeout();
+        self.cancel_edit_status_timeout();
         let weak_window = self.downgrade();
-        let source = glib::timeout_add_local_once(VALIDATION_DEBOUNCE, move || {
+        let source = glib::timeout_add_local_once(EDIT_STATUS_DEBOUNCE, move || {
             if let Some(window) = weak_window.upgrade() {
-                window.imp().validation_timeout.borrow_mut().take();
-                window.validate_profile_edit();
+                window.imp().edit_status_timeout.borrow_mut().take();
+                window.show_profile_edit_status();
             }
         });
-        imp.validation_timeout.replace(Some(source));
+        imp.edit_status_timeout.replace(Some(source));
     }
 
-    fn cancel_validation_timeout(&self) {
-        if let Some(source) = self.imp().validation_timeout.borrow_mut().take() {
+    fn cancel_edit_status_timeout(&self) {
+        if let Some(source) = self.imp().edit_status_timeout.borrow_mut().take() {
             source.remove();
         }
     }
 
-    fn validate_profile_edit(&self) {
+    fn show_profile_edit_status(&self) {
         let imp = self.imp();
         if imp.save_running.get() {
             return;
@@ -566,18 +564,6 @@ impl ProfileWindow {
             self.show_loaded_warnings();
             return;
         }
-        if let Some(state) = imp.display_name_state.borrow().as_ref()
-            && let Err(error) = state.validate(imp.display_name_entry.text().as_str())
-        {
-            let diagnostic = error.to_string();
-            self.show_save_status(
-                &gettext("The display name is not valid."),
-                true,
-                Some(&diagnostic),
-            );
-            return;
-        }
-
         self.show_save_status(&gettext("Unsaved profile changes."), false, None);
     }
 
@@ -587,7 +573,7 @@ impl ProfileWindow {
     }
 
     fn request_profile_save(&self) {
-        self.cancel_validation_timeout();
+        self.cancel_edit_status_timeout();
         let imp = self.imp();
         let Some(state) = imp.display_name_state.borrow().as_ref().cloned() else {
             return;
@@ -630,7 +616,7 @@ impl ProfileWindow {
             Ok(Err(error)) => {
                 let diagnostic = error.to_string();
                 self.finish_profile_save_error(
-                    &localized_display_name_write_error(&error),
+                    &gettext("The display name could not be saved. It is still in the form."),
                     Some(&diagnostic),
                 );
             }
@@ -745,17 +731,6 @@ fn localized_avatar_removal_error(error: &AvatarRemovalError) -> String {
     }
 }
 
-fn localized_display_name_write_error(error: &DisplayNameWriteError) -> String {
-    match error {
-        DisplayNameWriteError::Validation(_) => {
-            gettext("The display name is not valid. Your change was not saved.")
-        }
-        DisplayNameWriteError::Accounts(_) => {
-            gettext("The display name could not be saved. It is still in the form.")
-        }
-    }
-}
-
 fn show_warnings(label: &gtk::Label, warnings: &[LoadWarning]) {
     label.remove_css_class("dim-label");
     label.remove_css_class("warning");
@@ -778,7 +753,7 @@ fn show_warnings(label: &gtk::Label, warnings: &[LoadWarning]) {
 }
 
 fn localized_warning(warning: &LoadWarning) -> String {
-    match warning {
+    let message = match warning {
         LoadWarning::AccountsServiceUnavailable(_) => {
             gettext("AccountsService profile information could not be read.")
         }
@@ -787,7 +762,8 @@ fn localized_warning(warning: &LoadWarning) -> String {
             gettext("A profile image could not be used."),
             path.display()
         ),
-    }
+    };
+    format!("{message}\n{}", warning.diagnostic())
 }
 
 #[cfg(test)]
