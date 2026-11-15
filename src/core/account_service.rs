@@ -10,7 +10,7 @@ use zbus::{Connection, DynamicTuple, OwnedObjectPath, Proxy, proxy};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub(crate) struct AccountDetails {
-    pub(crate) email: String,
+    pub(crate) display_name: String,
     pub(crate) icon_file: Option<PathBuf>,
 }
 
@@ -18,8 +18,8 @@ pub(crate) trait AccountsSource {
     fn details_for_uid(&self, uid: u32) -> Result<AccountDetails, AccountsError>;
 }
 
-pub(super) trait EmailClient {
-    fn set_email(&self, uid: u32, email: &str) -> Result<(), AccountsError>;
+pub(super) trait DisplayNameClient {
+    fn set_display_name(&self, uid: u32, display_name: &str) -> Result<(), AccountsError>;
 }
 
 pub(super) trait IconClient {
@@ -36,9 +36,9 @@ impl AccountsSource for SystemAccountsSource {
     }
 }
 
-impl EmailClient for SystemAccountsSource {
-    fn set_email(&self, uid: u32, email: &str) -> Result<(), AccountsError> {
-        zbus::block_on(set_email(uid, email)).map_err(AccountsError::dbus)
+impl DisplayNameClient for SystemAccountsSource {
+    fn set_display_name(&self, uid: u32, display_name: &str) -> Result<(), AccountsError> {
+        zbus::block_on(set_real_name(uid, display_name)).map_err(AccountsError::dbus)
     }
 }
 
@@ -94,27 +94,22 @@ trait Accounts {
     interface = "org.freedesktop.Accounts.User"
 )]
 trait AccountsUser {
-    fn set_email(&self, email: &str) -> zbus::Result<()>;
-
     #[zbus(property)]
-    fn email(&self) -> zbus::Result<String>;
+    fn real_name(&self) -> zbus::Result<String>;
 
     #[zbus(property)]
     fn icon_file(&self) -> zbus::Result<String>;
 }
 
-async fn set_email(uid: u32, email: &str) -> zbus::Result<()> {
-    let connection = Connection::system().await?;
-    let accounts = AccountsProxy::new(&connection).await?;
-    let path = accounts.find_user_by_id(i64::from(uid)).await?;
-    let user = AccountsUserProxy::builder(&connection)
-        .path(path)
-        .build()
-        .await?;
-    user.set_email(email).await
+async fn set_real_name(uid: u32, display_name: &str) -> zbus::Result<()> {
+    call_string_method(uid, "SetRealName", display_name).await
 }
 
 async fn set_icon_file(uid: u32, icon_file: &str) -> zbus::Result<()> {
+    call_string_method(uid, "SetIconFile", icon_file).await
+}
+
+async fn call_string_method(uid: u32, method: &str, value: &str) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let accounts = AccountsProxy::new(&connection).await?;
     let path = accounts.find_user_by_id(i64::from(uid)).await?;
@@ -127,9 +122,9 @@ async fn set_icon_file(uid: u32, icon_file: &str) -> zbus::Result<()> {
     .await?;
     let _: Option<()> = user
         .call_with_flags(
-            "SetIconFile",
+            method,
             MethodFlags::ALLOW_INTERACTIVE_AUTH,
-            &DynamicTuple((icon_file,)),
+            &DynamicTuple((value,)),
         )
         .await?;
     Ok(())
@@ -143,11 +138,11 @@ async fn load_details(uid: u32) -> zbus::Result<AccountDetails> {
         .path(path)
         .build()
         .await?;
-    let email = user.email().await?;
+    let display_name = user.real_name().await?;
     let icon_file = user.icon_file().await?;
 
     Ok(AccountDetails {
-        email,
+        display_name,
         icon_file: (!icon_file.is_empty()).then(|| PathBuf::from(icon_file)),
     })
 }

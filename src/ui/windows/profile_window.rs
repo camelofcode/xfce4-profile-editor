@@ -10,10 +10,10 @@ use gtk::{gio, glib};
 
 use crate::core::{
     AvatarRemovalError, AvatarRemovalOutcome, AvatarSaveError, AvatarSaveOutcome,
-    CameraAvailability, CameraDiscoveryError, EmailState, EmailWriteError, GecosFields, GecosState,
-    GecosWriteError, LoadWarning, LoadedProfile, Profile, ProfileSaveError, ProfileSaveOutcome,
-    ProfileSaveRequest, ProfileStore, SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES,
-    discover_cameras, remove_current_avatar, save_current_avatar, save_current_profile,
+    CameraAvailability, CameraDiscoveryError, DisplayNameSaveOutcome, DisplayNameState,
+    DisplayNameWriteError, LoadWarning, LoadedProfile, Profile, ProfileStore,
+    SUPPORTED_AVATAR_MIME_TYPES, SUPPORTED_AVATAR_SUFFIXES, discover_cameras,
+    remove_current_avatar, save_current_avatar, save_current_display_name,
 };
 #[cfg(feature = "camera")]
 use crate::core::{CameraDevice, CameraFrame, save_current_camera_avatar};
@@ -21,6 +21,8 @@ use crate::core::{CameraDevice, CameraFrame, save_current_camera_avatar};
 use crate::ui::windows::CameraWindow;
 
 const VALIDATION_DEBOUNCE: Duration = Duration::from_millis(500);
+type DisplayNameSaveTaskResult =
+    Result<Result<DisplayNameSaveOutcome, DisplayNameWriteError>, Box<dyn std::any::Any + Send>>;
 
 mod imp {
     use super::*;
@@ -40,25 +42,16 @@ mod imp {
         #[template_child]
         pub close_button: TemplateChild<gtk::Button>,
         #[template_child]
-        pub email_entry: TemplateChild<gtk::Entry>,
-        #[template_child]
-        pub first_name_entry: TemplateChild<gtk::Entry>,
-        #[template_child]
-        pub home_phone_entry: TemplateChild<gtk::Entry>,
-        #[template_child]
-        pub last_name_entry: TemplateChild<gtk::Entry>,
+        pub display_name_entry: TemplateChild<gtk::Entry>,
         #[template_child]
         pub loading_indicator: TemplateChild<gtk::Spinner>,
-        #[template_child]
-        pub office_phone_entry: TemplateChild<gtk::Entry>,
         #[template_child]
         pub remove_photo_button: TemplateChild<gtk::Button>,
         #[template_child]
         pub status_label: TemplateChild<gtk::Label>,
         #[template_child]
         pub take_photo_button: TemplateChild<gtk::Button>,
-        pub(super) email_state: RefCell<Option<EmailState>>,
-        pub(super) gecos_state: RefCell<Option<GecosState>>,
+        pub(super) display_name_state: RefCell<Option<DisplayNameState>>,
         pub(super) camera_availability:
             RefCell<Option<Result<CameraAvailability, CameraDiscoveryError>>>,
         pub(super) load_warnings: RefCell<Vec<LoadWarning>>,
@@ -120,37 +113,22 @@ mod imp {
                 }
             });
 
-            for entry in [
-                self.first_name_entry.get(),
-                self.last_name_entry.get(),
-                self.home_phone_entry.get(),
-                self.email_entry.get(),
-                self.office_phone_entry.get(),
-            ] {
-                let weak_window = window.downgrade();
-                entry.connect_changed(move |_| {
-                    if let Some(window) = weak_window.upgrade() {
-                        window.profile_changed();
-                    }
-                });
+            let weak_window = window.downgrade();
+            self.display_name_entry.connect_changed(move |_| {
+                if let Some(window) = weak_window.upgrade() {
+                    window.profile_changed();
+                }
+            });
 
-                let weak_window = window.downgrade();
-                entry.connect_activate(move |_| {
-                    if let Some(window) = weak_window.upgrade() {
-                        window.child_focus(gtk::DirectionType::TabForward);
-                    }
-                });
-
-                let focus = gtk::EventControllerFocus::new();
-                let weak_window = window.downgrade();
-                focus.connect_leave(move |_| {
-                    if let Some(window) = weak_window.upgrade() {
-                        window.cancel_validation_timeout();
-                        window.validate_profile_edits();
-                    }
-                });
-                entry.add_controller(focus);
-            }
+            let focus = gtk::EventControllerFocus::new();
+            let weak_window = window.downgrade();
+            focus.connect_leave(move |_| {
+                if let Some(window) = weak_window.upgrade() {
+                    window.cancel_validation_timeout();
+                    window.validate_profile_edit();
+                }
+            });
+            self.display_name_entry.add_controller(focus);
             window.load_profile();
             window.load_camera_availability();
         }
@@ -266,27 +244,18 @@ impl ProfileWindow {
         let LoadedProfile {
             profile,
             warnings,
-            gecos_state,
-            email_state,
+            display_name_state,
         } = loaded;
         let Profile {
-            first_name,
-            last_name,
-            home_phone,
-            email,
-            office_phone,
+            display_name,
             avatars,
         } = profile;
 
-        imp.first_name_entry.set_text(&first_name);
-        imp.last_name_entry.set_text(&last_name);
-        imp.home_phone_entry.set_text(&home_phone);
-        imp.email_entry.set_text(&email);
-        imp.office_phone_entry.set_text(&office_phone);
-        imp.gecos_state.replace(Some(gecos_state));
-        imp.email_state.replace(email_state);
+        imp.display_name_entry.set_text(&display_name);
+        imp.display_name_entry
+            .set_editable(display_name_state.is_some());
+        imp.display_name_state.replace(display_name_state);
         imp.load_warnings.replace(warnings);
-        self.set_form_editable(true);
         imp.avatar_menu_button.set_sensitive(true);
 
         imp.avatar_present.set(!avatars.is_empty());
@@ -557,43 +526,15 @@ impl ProfileWindow {
         }
     }
 
-    fn gecos_fields(&self) -> GecosFields {
-        let imp = self.imp();
-        GecosFields {
-            first_name: imp.first_name_entry.text().to_string(),
-            last_name: imp.last_name_entry.text().to_string(),
-            home_phone: imp.home_phone_entry.text().to_string(),
-            office_phone: imp.office_phone_entry.text().to_string(),
-        }
-    }
-
-    fn set_gecos_fields(&self, fields: &GecosFields) {
-        let imp = self.imp();
-        imp.first_name_entry.set_text(&fields.first_name);
-        imp.last_name_entry.set_text(&fields.last_name);
-        imp.home_phone_entry.set_text(&fields.home_phone);
-        imp.office_phone_entry.set_text(&fields.office_phone);
-    }
-
-    fn set_form_editable(&self, editable: bool) {
-        let imp = self.imp();
-        imp.first_name_entry.set_editable(editable);
-        imp.last_name_entry.set_editable(editable);
-        imp.home_phone_entry.set_editable(editable);
-        imp.office_phone_entry.set_editable(editable);
-        imp.email_entry
-            .set_editable(editable && imp.email_state.borrow().is_some());
-    }
-
     fn profile_changed(&self) {
         let imp = self.imp();
         if imp.save_running.get() {
             return;
         }
-        if imp.gecos_state.borrow().is_none() {
+        if imp.display_name_state.borrow().is_none() {
             return;
         }
-        if !self.profile_is_dirty() {
+        if !self.display_name_is_dirty() {
             self.cancel_validation_timeout();
             self.show_loaded_warnings();
             return;
@@ -604,7 +545,7 @@ impl ProfileWindow {
         let source = glib::timeout_add_local_once(VALIDATION_DEBOUNCE, move || {
             if let Some(window) = weak_window.upgrade() {
                 window.imp().validation_timeout.borrow_mut().take();
-                window.validate_profile_edits();
+                window.validate_profile_edit();
             }
         });
         imp.validation_timeout.replace(Some(source));
@@ -616,38 +557,21 @@ impl ProfileWindow {
         }
     }
 
-    fn validate_profile_edits(&self) {
+    fn validate_profile_edit(&self) {
         let imp = self.imp();
         if imp.save_running.get() {
             return;
         }
-        if !self.profile_is_dirty() {
+        if !self.display_name_is_dirty() {
             self.show_loaded_warnings();
             return;
         }
-        let fields = self.gecos_fields();
-        if imp
-            .gecos_state
-            .borrow()
-            .as_ref()
-            .is_some_and(|state| !state.matches(&fields))
-            && let Err(error) = fields.validate()
+        if let Some(state) = imp.display_name_state.borrow().as_ref()
+            && let Err(error) = state.validate(imp.display_name_entry.text().as_str())
         {
             let diagnostic = error.to_string();
             self.show_save_status(
-                &gettext("A name or phone number is not valid."),
-                true,
-                Some(&diagnostic),
-            );
-            return;
-        }
-        if let Some(state) = imp.email_state.borrow().as_ref()
-            && !state.matches(imp.email_entry.text().as_str())
-            && let Err(error) = state.validate(imp.email_entry.text().as_str())
-        {
-            let diagnostic = error.to_string();
-            self.show_save_status(
-                &gettext("The email address is not valid."),
+                &gettext("The display name is not valid."),
                 true,
                 Some(&diagnostic),
             );
@@ -665,11 +589,11 @@ impl ProfileWindow {
     fn request_profile_save(&self) {
         self.cancel_validation_timeout();
         let imp = self.imp();
-        let Some(state) = imp.gecos_state.borrow().as_ref().cloned() else {
+        let Some(state) = imp.display_name_state.borrow().as_ref().cloned() else {
             return;
         };
-        let fields = self.gecos_fields();
-        if !self.profile_is_dirty() {
+        let display_name = imp.display_name_entry.text().to_string();
+        if !self.display_name_is_dirty() {
             if imp.close_after_save.replace(false) {
                 self.close();
             }
@@ -680,18 +604,13 @@ impl ProfileWindow {
         }
 
         imp.save_running.set(true);
-        self.set_form_editable(false);
+        imp.display_name_entry.set_editable(false);
         self.show_save_status(&gettext("Saving profile…"), false, None);
-        let request = ProfileSaveRequest {
-            gecos_state: state,
-            gecos_fields: fields,
-            email_state: imp.email_state.borrow().as_ref().cloned(),
-            email: imp.email_entry.text().to_string(),
-        };
 
         let weak_window = self.downgrade();
         glib::spawn_future_local(async move {
-            let result = gio::spawn_blocking(move || save_current_profile(request)).await;
+            let result =
+                gio::spawn_blocking(move || save_current_display_name(state, display_name)).await;
             let Some(window) = weak_window.upgrade() else {
                 return;
             };
@@ -699,29 +618,19 @@ impl ProfileWindow {
         });
     }
 
-    fn finish_profile_save_result(
-        &self,
-        result: Result<Result<ProfileSaveOutcome, ProfileSaveError>, Box<dyn std::any::Any + Send>>,
-    ) {
+    fn finish_profile_save_result(&self, result: DisplayNameSaveTaskResult) {
         match result {
             Ok(Ok(outcome)) => {
-                let (gecos_state, fields, email_state, email, saved) = outcome.into_parts();
+                let (state, display_name, saved) = outcome.into_parts();
                 let imp = self.imp();
-                imp.gecos_state.replace(Some(gecos_state));
-                imp.email_state.replace(email_state);
-                self.set_gecos_fields(&fields);
-                imp.email_entry.set_text(&email);
+                imp.display_name_state.replace(Some(state));
+                imp.display_name_entry.set_text(&display_name);
                 self.finish_profile_save(saved);
             }
             Ok(Err(error)) => {
-                if let Some(outcome) = error.completed_gecos().cloned() {
-                    let (state, fields, _saved) = outcome.into_parts();
-                    self.imp().gecos_state.replace(Some(state));
-                    self.set_gecos_fields(&fields);
-                }
                 let diagnostic = error.to_string();
                 self.finish_profile_save_error(
-                    &localized_profile_save_error(&error),
+                    &localized_display_name_write_error(&error),
                     Some(&diagnostic),
                 );
             }
@@ -737,7 +646,7 @@ impl ProfileWindow {
     fn finish_profile_save(&self, saved: bool) {
         let imp = self.imp();
         imp.save_running.set(false);
-        self.set_form_editable(true);
+        imp.display_name_entry.set_editable(true);
         if saved {
             self.show_save_status(&gettext("Profile saved."), false, None);
         }
@@ -750,31 +659,24 @@ impl ProfileWindow {
         let imp = self.imp();
         imp.save_running.set(false);
         imp.close_after_save.set(false);
-        self.set_form_editable(true);
+        imp.display_name_entry.set_editable(true);
         self.show_save_status(message, true, diagnostic);
     }
 
-    fn profile_is_dirty(&self) -> bool {
+    fn display_name_is_dirty(&self) -> bool {
         let imp = self.imp();
-        let gecos_dirty = imp
-            .gecos_state
+        imp.display_name_state
             .borrow()
             .as_ref()
-            .is_some_and(|state| !state.matches(&self.gecos_fields()));
-        let email_dirty = imp
-            .email_state
-            .borrow()
-            .as_ref()
-            .is_some_and(|state| !state.matches(imp.email_entry.text().as_str()));
-        gecos_dirty || email_dirty
+            .is_some_and(|state| !state.matches(imp.display_name_entry.text().as_str()))
     }
 
     fn delay_close_for_save(&self) -> bool {
         let imp = self.imp();
-        if imp.gecos_state.borrow().is_none() {
+        if imp.display_name_state.borrow().is_none() {
             return false;
         }
-        if !self.profile_is_dirty() && !imp.save_running.get() {
+        if !self.display_name_is_dirty() && !imp.save_running.get() {
             return false;
         }
 
@@ -843,45 +745,14 @@ fn localized_avatar_removal_error(error: &AvatarRemovalError) -> String {
     }
 }
 
-fn localized_gecos_write_error(error: &GecosWriteError) -> String {
+fn localized_display_name_write_error(error: &DisplayNameWriteError) -> String {
     match error {
-        GecosWriteError::Validation(_) | GecosWriteError::HelperValidation(_) => {
-            gettext("A name or phone number is not valid. Your changes were not saved.")
+        DisplayNameWriteError::Validation(_) => {
+            gettext("The display name is not valid. Your change was not saved.")
         }
-        GecosWriteError::AuthenticationCancelled => {
-            gettext("Authentication was cancelled. Your changes were not saved.")
+        DisplayNameWriteError::Accounts(_) => {
+            gettext("The display name could not be saved. It is still in the form.")
         }
-        GecosWriteError::AuthorizationDenied => {
-            gettext("Authorization was denied. Your changes were not saved.")
-        }
-        GecosWriteError::StaleData => gettext(
-            "The account changed after it was loaded. Reopen the profile editor and try again.",
-        ),
-        GecosWriteError::AccountNotLocal => {
-            gettext("This account is not stored locally and cannot be changed here.")
-        }
-        GecosWriteError::AmbiguousAccount => {
-            gettext("The local account record is ambiguous and was not changed.")
-        }
-        _ => gettext("The profile could not be saved. Your changes are still in the form."),
-    }
-}
-
-fn localized_email_write_error(error: &EmailWriteError) -> String {
-    match error {
-        EmailWriteError::Validation(_) => {
-            gettext("The email address is not valid. Your changes were not saved.")
-        }
-        EmailWriteError::Accounts(_) => {
-            gettext("The email address could not be saved. It is still in the form.")
-        }
-    }
-}
-
-fn localized_profile_save_error(error: &ProfileSaveError) -> String {
-    match error {
-        ProfileSaveError::Gecos(error) => localized_gecos_write_error(error),
-        ProfileSaveError::Email { source, .. } => localized_email_write_error(source),
     }
 }
 
@@ -942,6 +813,14 @@ mod tests {
             .register(None::<&gio::Cancellable>)
             .expect("failed to register test application");
         let window = ProfileWindow::new(&application);
+
+        assert!(
+            window
+                .imp()
+                .display_name_entry
+                .secondary_icon_name()
+                .is_none()
+        );
 
         assert!(window.title().is_some_and(|title| !title.is_empty()));
         window.present();

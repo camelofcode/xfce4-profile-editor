@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 use std::env;
-use std::fs;
+use std::fs::{self, FileTimes, OpenOptions};
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
+use std::time::SystemTime;
 
 const SCSS_ENTRY_POINT: &str = "ui/sass/app.scss";
 const SCSS_PARTIALS: &[&str] = &[
@@ -25,13 +26,36 @@ fn main() {
     let output_directory = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR is not set"));
     let compiled_css = output_directory.join("app.css");
 
-    compile_scss(Path::new(SCSS_ENTRY_POINT), &compiled_css);
+    compile_scss(
+        Path::new(SCSS_ENTRY_POINT),
+        &compiled_css,
+        latest_scss_modified(),
+    );
 
     let resource_sources = [PathBuf::from("."), output_directory];
     glib_build_tools::compile_resources(&resource_sources, RESOURCE_MANIFEST, RESOURCE_OUTPUT);
 }
 
-fn compile_scss(input: &Path, output: &Path) {
+fn latest_scss_modified() -> SystemTime {
+    let mut latest = modified_time(Path::new(SCSS_ENTRY_POINT));
+    for partial in SCSS_PARTIALS {
+        latest = latest.max(modified_time(Path::new(partial)));
+    }
+    latest
+}
+
+fn modified_time(path: &Path) -> SystemTime {
+    fs::metadata(path)
+        .and_then(|metadata| metadata.modified())
+        .unwrap_or_else(|error| {
+            panic!(
+                "failed to read {} modification time: {error}",
+                path.display()
+            )
+        })
+}
+
+fn compile_scss(input: &Path, output: &Path, source_modified: SystemTime) {
     let temporary_output = output.with_extension("css.tmp");
     match Command::new("sass")
         .args(["--no-source-map", "--style=expanded"])
@@ -46,7 +70,7 @@ fn compile_scss(input: &Path, output: &Path) {
         Err(error) => panic!("failed to run sass: {error}"),
     }
 
-    replace_if_changed(&temporary_output, output);
+    replace_if_changed(&temporary_output, output, source_modified);
 }
 
 fn compile_with_sassc(input: &Path, output: &Path) {
@@ -66,7 +90,7 @@ fn require_success(program: &str, status: ExitStatus) {
     assert!(status.success(), "{program} exited with status {status}");
 }
 
-fn replace_if_changed(candidate: &Path, output: &Path) {
+fn replace_if_changed(candidate: &Path, output: &Path, source_modified: SystemTime) {
     let candidate_bytes = fs::read(candidate)
         .unwrap_or_else(|error| panic!("failed to read {}: {error}", candidate.display()));
     let unchanged = fs::read(output).is_ok_and(|current_bytes| current_bytes == candidate_bytes);
@@ -74,6 +98,16 @@ fn replace_if_changed(candidate: &Path, output: &Path) {
     if !unchanged {
         fs::write(output, &candidate_bytes)
             .unwrap_or_else(|error| panic!("failed to write {}: {error}", output.display()));
+        OpenOptions::new()
+            .write(true)
+            .open(output)
+            .and_then(|file| file.set_times(FileTimes::new().set_modified(source_modified)))
+            .unwrap_or_else(|error| {
+                panic!(
+                    "failed to preserve {} modification time: {error}",
+                    output.display()
+                )
+            });
     }
     fs::remove_file(candidate)
         .unwrap_or_else(|error| panic!("failed to remove {}: {error}", candidate.display()));

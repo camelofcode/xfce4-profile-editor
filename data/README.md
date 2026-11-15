@@ -1,33 +1,20 @@
+<!-- SPDX-License-Identifier: GPL-2.0-or-later -->
+
 # Installation Layout
 
-The eventual native package installs these files in one transaction:
+The native package installs the application at:
 
 ```text
 @bindir@/xfce4-profile-editor
-@libexecdir@/xfce4-profile-editor-helper
-@datadir@/polkit-1/actions/io.github.camelofcode.Xfce4ProfileEditor.policy
 ```
 
-The helper must be owned by root and executable but must not have a setuid bit.
-The policy is generated from `data/polkit/*.policy.in` by replacing
-`@libexecdir@` with the package's absolute libexec directory. The package must
-depend on Polkit, AccountsService, and the provider of `/usr/sbin/usermod`.
-
-No Polkit JavaScript rule is installed. Distribution administrators retain the
-ability to override the declared action using their normal Polkit rules.
+Profile image and display-name updates use the current user's files and the
+distribution-provided AccountsService interface. The project does not install
+a privileged helper or its own Polkit policy.
 
 For package builds, configure Meson with `-Dprofile=release` and the intended
-prefix, then run `meson install` with a non-empty `DESTDIR`. Meson builds both
-release binaries, installs them into this layout, and renders the policy with
-the configured absolute `libexecdir` without writing outside the staging
-directory.
-
-Developers can run `scripts/build-install-launch.sh stage` for that safe staged
-workflow. Its explicit `install` command copies only the verified application,
-helper, and policy with `sudo install`; Meson and Cargo continue to run as the
-unprivileged developer.
-
-The installed policy declares the `xfce4-profile-editor` gettext domain so the
-system Polkit agent can translate its description and authentication message.
-The matching extraction markers in `po/polkit-messages.rs` are kept in sync by
-an automated test.
+prefix, then run `meson install` with a non-empty `DESTDIR`. Developers can use
+`scripts/build-install-launch.sh stage` for this safe staged workflow. Its
+explicit `install` command copies the verified application with `sudo install`
+and removes the two obsolete helper/policy files from pre-simplification
+development installations when present.

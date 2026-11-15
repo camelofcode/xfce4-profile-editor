@@ -6,10 +6,9 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use super::account_service::{AccountDetails, AccountsSource, SystemAccountsSource};
-use super::email_persistence::EmailState;
-use super::gecos_persistence::GecosState;
+use super::display_name_persistence::DisplayNameState;
 use super::image::MAX_SOURCE_BYTES;
-use super::profile::{Avatar, AvatarSource, Profile, split_full_name};
+use super::profile::{Avatar, AvatarSource, Profile};
 use super::user::{NssUserSource, UserLookupError, UserRecord, UserSource};
 
 type AvatarCandidate = (PathBuf, fn(PathBuf) -> AvatarSource);
@@ -18,8 +17,7 @@ type AvatarCandidate = (PathBuf, fn(PathBuf) -> AvatarSource);
 pub(crate) struct LoadedProfile {
     pub(crate) profile: Profile,
     pub(crate) warnings: Vec<LoadWarning>,
-    pub(crate) gecos_state: GecosState,
-    pub(crate) email_state: Option<EmailState>,
+    pub(crate) display_name_state: Option<DisplayNameState>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -83,24 +81,23 @@ impl<U: UserSource, A: AccountsSource> ProfileStore<U, A> {
             }
         };
 
-        let (first_name, last_name) = split_full_name(user.gecos.full_name());
         let avatars = load_avatar_candidates(&user, &account, &mut warnings);
+        let display_name = if accounts_available {
+            account.display_name
+        } else {
+            user.display_name
+        };
         let profile = Profile {
-            first_name,
-            last_name,
-            home_phone: user.gecos.home_phone().to_owned(),
-            email: account.email,
-            office_phone: user.gecos.office_phone().to_owned(),
+            display_name: display_name.clone(),
             avatars,
         };
-        let gecos_state = GecosState::new(user.gecos, &profile);
-        let email_state = accounts_available.then(|| EmailState::new(user.uid, &profile.email));
+        let display_name_state =
+            accounts_available.then(|| DisplayNameState::new(user.uid, &display_name));
 
         Ok(LoadedProfile {
             profile,
             warnings,
-            gecos_state,
-            email_state,
+            display_name_state,
         })
     }
 }
@@ -168,8 +165,6 @@ fn read_avatar(path: &Path) -> Result<Vec<u8>, AvatarReadError> {
 mod tests {
     use super::*;
     use crate::core::account_service::AccountsError;
-    use crate::core::gecos::Gecos;
-
     #[derive(Clone)]
     struct FakeUsers(UserRecord);
 
@@ -196,9 +191,8 @@ mod tests {
     fn user() -> UserRecord {
         UserRecord {
             uid: 1000,
-            username: "ada".to_owned(),
             home_directory: PathBuf::from("/path/that/does/not/exist"),
-            gecos: Gecos::parse("Ada Lovelace,room,0123,0456,hidden"),
+            display_name: "Fallback Name".to_owned(),
         }
     }
 
@@ -207,23 +201,19 @@ mod tests {
         let store = ProfileStore::new(
             FakeUsers(user()),
             FakeAccounts::Available(AccountDetails {
-                email: "ada@example.test".to_owned(),
+                display_name: "Ada Lovelace".to_owned(),
                 icon_file: None,
             }),
         );
 
         let loaded = store.load().unwrap();
 
-        assert_eq!(loaded.profile.first_name, "Ada");
-        assert_eq!(loaded.profile.last_name, "Lovelace");
-        assert_eq!(loaded.profile.office_phone, "0123");
-        assert_eq!(loaded.profile.home_phone, "0456");
-        assert_eq!(loaded.profile.email, "ada@example.test");
+        assert_eq!(loaded.profile.display_name, "Ada Lovelace");
         assert!(
             loaded
-                .email_state
+                .display_name_state
                 .as_ref()
-                .is_some_and(|state| state.matches("ada@example.test"))
+                .is_some_and(|state| state.matches("Ada Lovelace"))
         );
         assert!(loaded.warnings.is_empty());
     }
@@ -234,9 +224,8 @@ mod tests {
 
         let loaded = store.load().unwrap();
 
-        assert_eq!(loaded.profile.first_name, "Ada");
-        assert!(loaded.profile.email.is_empty());
-        assert!(loaded.email_state.is_none());
+        assert_eq!(loaded.profile.display_name, "Fallback Name");
+        assert!(loaded.display_name_state.is_none());
         assert!(matches!(
             loaded.warnings.as_slice(),
             [LoadWarning::AccountsServiceUnavailable(_)]

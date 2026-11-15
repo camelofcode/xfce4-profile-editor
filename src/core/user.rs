@@ -7,14 +7,11 @@ use std::process::Command;
 
 use thiserror::Error;
 
-use super::gecos::Gecos;
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UserRecord {
     pub(crate) uid: u32,
-    pub(crate) username: String,
     pub(crate) home_directory: PathBuf,
-    pub(crate) gecos: Gecos,
+    pub(crate) display_name: String,
 }
 
 pub(crate) trait UserSource {
@@ -81,9 +78,8 @@ fn parse_passwd_record(value: &str, expected_uid: u32) -> Result<UserRecord, Use
 
     Ok(UserRecord {
         uid,
-        username: username.to_owned(),
         home_directory: PathBuf::from(home_directory),
-        gecos: Gecos::parse(gecos),
+        display_name: gecos.split(',').next().unwrap_or_default().to_owned(),
     })
 }
 
@@ -99,11 +95,8 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(user.username, "ada");
         assert_eq!(user.home_directory, PathBuf::from("/home/ada"));
-        assert_eq!(user.gecos.full_name(), "Ada Lovelace");
-        assert_eq!(user.gecos.office_phone(), "0123");
-        assert_eq!(user.gecos.home_phone(), "0456");
+        assert_eq!(user.display_name, "Ada Lovelace");
     }
 
     #[test]

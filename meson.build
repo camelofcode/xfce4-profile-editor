@@ -13,10 +13,8 @@ i18n = import('i18n')
 gettext_package = meson.project_name()
 prefix = get_option('prefix')
 bindir = prefix / get_option('bindir')
-libexecdir = prefix / get_option('libexecdir')
 datadir = prefix / get_option('datadir')
 localedir = prefix / get_option('localedir')
-policydir = datadir / 'polkit-1' / 'actions'
 
 subdir('po')
 subdir('data')

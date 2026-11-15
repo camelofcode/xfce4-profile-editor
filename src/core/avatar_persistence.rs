@@ -200,12 +200,10 @@ mod tests {
     use std::cell::RefCell;
     use std::sync::atomic::{AtomicU64, Ordering};
 
-    use image::codecs::png::PngEncoder;
-    use image::{ExtendedColorType, ImageEncoder, Rgba, RgbaImage};
-    use xfce4_profile_data::Gecos;
-
     use super::*;
     use crate::core::user::UserRecord;
+    use image::codecs::png::PngEncoder;
+    use image::{ExtendedColorType, ImageEncoder, Rgba, RgbaImage};
 
     static NEXT_TEST_DIRECTORY: AtomicU64 = AtomicU64::new(0);
 
@@ -270,9 +268,8 @@ mod tests {
     fn user(home_directory: PathBuf) -> FakeUsers {
         FakeUsers(UserRecord {
             uid: 1000,
-            username: "ada".to_owned(),
             home_directory,
-            gecos: Gecos::parse("Ada Lovelace,room,work,home,hidden"),
+            display_name: "Ada Lovelace".to_owned(),
         })
     }
 

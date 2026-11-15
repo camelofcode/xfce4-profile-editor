@@ -40,6 +40,17 @@ detected mode.
 
 - Reuse the workspace `target/` cache across direct Cargo and Meson builds.
   Do not create a second target directory merely to isolate build front ends.
+- Keep the user's normal Cargo home. Do not set `CARGO_HOME` or
+  `CARGO_TARGET_DIR` to a temporary or task-specific path: registry source paths
+  participate in Cargo fingerprints, so switching homes can rebuild the whole
+  dependency graph even when versions are unchanged.
+- Use `scripts/build-install-launch.sh` for application builds, staging,
+  installation, and launches. Use direct Cargo only for formatting, linting,
+  and tests that the script does not provide.
+- On responsive machines, use focused checks while a checkpoint is still being
+  developed or manually reviewed. Run the complete formatting, Clippy, test,
+  and packaging gate once, after approval and immediately before commit. Do not
+  repeatedly run the full gate between small iterations.
 - Do not run `cargo clean`, delete a target directory, install compiler tools,
   or change system configuration unless the user has approved it.
 - Do not reduce verification coverage because a machine is constrained.
