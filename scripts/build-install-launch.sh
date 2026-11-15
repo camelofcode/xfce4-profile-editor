@@ -11,8 +11,6 @@ stage_root="$project_root/target/staged-install"
 mode_detector="$project_root/.agents/skills/resource-aware-builds/scripts/detect-build-mode.sh"
 staged_application="$stage_root/usr/bin/xfce4-profile-editor"
 installed_application=/usr/bin/xfce4-profile-editor
-legacy_installed_helper=/usr/libexec/xfce4-profile-editor-helper
-legacy_installed_policy=/usr/share/polkit-1/actions/io.github.camelofcode.Xfce4ProfileEditor.policy
 
 usage() {
     cat <<'EOF'
@@ -26,8 +24,7 @@ Commands:
   cycle    Install, verify, and launch the system installation.
   help     Show this help.
 
-Only install and cycle modify /usr or request elevation. They also remove the
-obsolete pre-simplification helper and project Polkit policy when present.
+Only install and cycle modify /usr or request elevation.
 
 This is the authoritative application build workflow. Every command reuses
 the workspace Cargo cache under target/; Rust checks use that same cache.
@@ -113,9 +110,10 @@ verify_layout() {
 
 stage_release() {
     build_release
-    rm -f -- \
-        "$stage_root/usr/libexec/xfce4-profile-editor-helper" \
-        "$stage_root/usr/share/polkit-1/actions/io.github.camelofcode.Xfce4ProfileEditor.policy"
+    [ "$stage_root" = "$project_root/target/staged-install" ] || {
+        fail "refusing to clear unexpected staging path: $stage_root"
+    }
+    rm -rf -- "$stage_root"
     DESTDIR="$stage_root" meson install --no-rebuild -C "$release_build"
     verify_layout "$stage_root"
     printf 'Staged installation verified under %s\n' "$stage_root"
@@ -125,8 +123,6 @@ verify_system_install() {
     [ -x "$installed_application" ] || fail "installed application is missing"
     require_mode "$installed_application" 755
     require_root_owner "$installed_application"
-    [ ! -e "$legacy_installed_helper" ] || fail "obsolete helper is still installed"
-    [ ! -e "$legacy_installed_policy" ] || fail "obsolete Polkit policy is still installed"
 }
 
 install_release() {
@@ -134,7 +130,6 @@ install_release() {
     command -v sudo >/dev/null 2>&1 || fail "sudo is required for a system installation"
     printf 'Installing the verified release under /usr; sudo may request authentication.\n'
     sudo install -Dm755 "$staged_application" "$installed_application"
-    sudo rm -f -- "$legacy_installed_helper" "$legacy_installed_policy"
     verify_system_install
     printf 'System installation verified.\n'
 }

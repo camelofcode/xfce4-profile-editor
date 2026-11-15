@@ -13,9 +13,9 @@ truth for current scope and architecture.
 - Repository base: `5679c47` (merged public pull-request workflow)
 - Archived full-field implementation tag:
   `archive/full-profile-fields-2026-11-15` (pushed to `origin`)
-- Current checkpoint: Whisker-focused scope simplification — approved and
-  ready for pull request
-- Next checkpoint after approval: Phase 6 desktop integration and packaging
+- Current checkpoint: Whisker-focused scope simplification — pull request #2
+  open for review
+- Next checkpoint after merge: Phase 6 desktop integration and packaging
 - Expected repository state after handoff: committed topic branch pushed with
   a pull request open against `main`
 
@@ -36,8 +36,8 @@ Implemented in the worktree:
   combined profile transaction, email persistence, JSON protocol, and project
   Polkit policy;
 - reduced Meson packaging to the application binary;
-- updated the repeatable install script to remove the exact two obsolete
-  helper/policy files from earlier manual installations;
+- removed the empty packaging-data scaffold and legacy helper/policy migration
+  path; staged installs are rebuilt from a clean generated destination;
 - updated CI, translation inputs, repository guidance, plan, and packaging
   documentation for the reduced architecture;
 - reduced the profile window from 560×600 to a fixed 460×360 and removed the

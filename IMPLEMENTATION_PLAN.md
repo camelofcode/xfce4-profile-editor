@@ -105,7 +105,6 @@ Cargo home and workspace `target/` cache. There is no parallel Makefile path.
 ├── meson.build
 ├── meson_options.txt
 ├── resources.gresource.xml
-├── data/
 ├── docs/
 ├── po/
 ├── scripts/

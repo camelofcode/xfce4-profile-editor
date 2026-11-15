@@ -75,8 +75,7 @@ scripts/build-install-launch.sh launch
 
 `build` and `stage` never request elevation. `install` stages and verifies the
 release first, then uses `sudo install` to copy the application; compilation
-and Meson metadata therefore remain unprivileged. It also removes the obsolete
-helper and project Polkit policy from pre-simplification manual installations.
+and Meson metadata therefore remain unprivileged.
 `cycle` performs the explicit install followed by launch. The script adapts
 compiler parallelism to the current machine. Repository build scripts,
 including the Meson-to-Cargo driver, are kept together under `scripts/`.

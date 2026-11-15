@@ -34,7 +34,6 @@ jobs:
             libclang-dev \
             libgtk-4-dev \
             libv4l-dev \
-            libxml2-utils \
             meson \
             ninja-build \
             pkg-config \
