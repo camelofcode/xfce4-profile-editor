@@ -11,6 +11,10 @@ concise and factual; do not duplicate the full implementation plan.
 
 ## Required skill
 
+Use `.agents/skills/idiomatic-rust/SKILL.md` whenever a change adds, removes,
+or substantially reshapes Rust types, modules, traits, service interfaces, or
+error handling.
+
 Use `.agents/skills/ui-core-boundary/SKILL.md` whenever a change adds or
 substantially modifies a GTK window, UI flow, system service, persistence path,
 image/camera pipeline, or feature that crosses `src/ui/` and `src/core/`.

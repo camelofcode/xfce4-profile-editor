@@ -46,6 +46,8 @@ Implemented in the worktree:
   avatar-source variants, and an unused camera-description field;
 - replaced stateless current-user and AccountsService adapter structs with
   plain functions, using closures only at the internal test seams;
+- added a required repository skill covering function-versus-struct choices,
+  trait use, typed enums, wrapper types, visibility, and structural review;
 - updated CI, translation inputs, repository guidance, plan, and packaging
   documentation for the reduced architecture;
 - reduced the profile window from 560×600 to a fixed 460×360 and removed the
