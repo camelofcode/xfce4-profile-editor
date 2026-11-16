@@ -28,5 +28,11 @@ if host_machine.system() == 'linux'
     install_dir: datadir / 'metainfo',
   )
 
+  install_data(
+    '../LICENSE',
+    '../COPYRIGHT',
+    install_dir: datadir / 'doc' / meson.project_name(),
+  )
+
   subdir('icons')
 endif

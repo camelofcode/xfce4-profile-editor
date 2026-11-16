@@ -13,6 +13,8 @@ installed_application=/usr/bin/xfce4-profile-editor
 installed_desktop_file=/usr/share/applications/io.github.camelofcode.Xfce4ProfileEditor.desktop
 installed_icon=/usr/share/icons/hicolor/scalable/apps/io.github.camelofcode.Xfce4ProfileEditor.svg
 installed_metainfo=/usr/share/metainfo/io.github.camelofcode.Xfce4ProfileEditor.metainfo.xml
+installed_license=/usr/share/doc/xfce4-profile-editor/LICENSE
+installed_copyright=/usr/share/doc/xfce4-profile-editor/COPYRIGHT
 
 usage() {
     cat <<'EOF'
@@ -108,15 +110,21 @@ verify_layout() {
     desktop_file="$root/usr/share/applications/io.github.camelofcode.Xfce4ProfileEditor.desktop"
     icon="$root/usr/share/icons/hicolor/scalable/apps/io.github.camelofcode.Xfce4ProfileEditor.svg"
     metainfo="$root/usr/share/metainfo/io.github.camelofcode.Xfce4ProfileEditor.metainfo.xml"
+    license="$root/usr/share/doc/xfce4-profile-editor/LICENSE"
+    copyright="$root/usr/share/doc/xfce4-profile-editor/COPYRIGHT"
 
     [ -x "$application" ] || fail "application is missing from $root"
     [ -f "$desktop_file" ] || fail "desktop file is missing from $root"
     [ -f "$icon" ] || fail "application icon is missing from $root"
     [ -f "$metainfo" ] || fail "AppStream metadata is missing from $root"
+    [ -f "$license" ] || fail "licence is missing from $root"
+    [ -f "$copyright" ] || fail "copyright notice is missing from $root"
     require_mode "$application" 755
     require_mode "$desktop_file" 644
     require_mode "$icon" 644
     require_mode "$metainfo" 644
+    require_mode "$license" 644
+    require_mode "$copyright" 644
 }
 
 stage_release() {
@@ -136,6 +144,8 @@ verify_system_install() {
     require_root_owner "$installed_desktop_file"
     require_root_owner "$installed_icon"
     require_root_owner "$installed_metainfo"
+    require_root_owner "$installed_license"
+    require_root_owner "$installed_copyright"
 }
 
 install_release() {

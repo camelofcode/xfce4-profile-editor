@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+Source: xfce4-profile-editor
+Section: x11
+Priority: optional
+Maintainer: Chris Clayton <chris@chrisclayton.dev>
+Build-Depends: debhelper-compat (= 13), libgtk-4-dev (>= 4.10), libv4l-dev
+Standards-Version: 4.7.4
+Rules-Requires-Root: no
+Homepage: https://github.com/camelofcode/xfce4-profile-editor
+
+Package: xfce4-profile-editor
+Architecture: any
+Depends: ${shlibs:Depends}, accountsservice, hicolor-icon-theme
+Description: Edit your Xfce display name and profile image
+ Xfce Profile Editor changes the current user's display name and profile image
+ through the same system interfaces used by the Xfce Whisker Menu.

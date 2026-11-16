@@ -9,53 +9,48 @@ truth for current scope and architecture.
 
 ## Current position
 
-- Active branch: `phase-6-desktop-integration`
-- Repository base: `c7d973c` (merged Whisker-focused scope and readability
-  refactor)
+- Active branch: `phase-7-release-automation`
+- Repository base: `f84880b` (merged desktop integration)
 - Archived full-field implementation tag:
   `archive/full-profile-fields-2026-11-15` (pushed to `origin`)
-- Current checkpoint: Phase 6 desktop integration — manually accepted with the
-  final gate passing; ready for a pull request
-- Next checkpoint: distro packaging guidance, then Phase 7 CI release
-  automation
-- Expected repository state after handoff: committed topic branch pushed with
-  a pull request open against `main`
+- Current checkpoint: x86_64 release packages and draft-release automation —
+  implemented locally, pending the packaging workflow's pull-request run
+- Next checkpoint: download and inspect the workflow-built packages before
+  merging, then exercise a manual workflow run from `main`
+- Expected repository state after handoff: uncommitted topic branch awaiting
+  workflow validation
 
 ## Current checkpoint worktree
 
 Implemented:
 
-- added a translated **Profile Editor** desktop launcher in Xfce's personal
-  Settings category;
-- added an original scalable application icon and installed it through the
-  hicolor icon theme;
-- added translated AppStream metadata for software catalogues;
-- kept code, build files, the icon, and desktop entry under
-  `GPL-2.0-or-later`, with the AppStream metadata under `CC0-1.0` as required
-  for catalogue aggregation;
-- updated Meson installation and post-install cache refreshes;
-- expanded the authoritative build script to verify and install the complete
-  desktop layout without compiling as root;
-- added desktop-entry and AppStream validation to the single CI job;
-- updated README installation and Whisker configuration guidance.
+- added a review-triggered and manually runnable release-package build with
+  read-only repository permissions and seven-day artifact retention;
+- added a `vMAJOR.MINOR.PATCH` tag path that verifies the tag is on `main`,
+  checks Meson/Cargo/AppStream version agreement, and grants `contents: write`
+  only to the short draft-release job;
+- packages the one verified Meson staging tree as `.deb`, `.rpm`, and
+  `linux-x86_64.tar.xz`, with shared-library dependency discovery and
+  `SHA256SUMS`;
+- added Debian and RPM metadata, installed licence/copyright files, and a
+  repeatable packaging script that never compiles;
+- documented manual build testing, tagging, target-distribution acceptance,
+  and the explicit draft-publication checkpoint.
 
 Focused verification completed:
 
-- translated desktop and AppStream files generate successfully;
-- `desktop-file-validate` passes;
-- AppStream validation passes, with only the existing mixed-case application
-  ID reported as a pedantic preference;
-- gettext extraction includes desktop and AppStream strings;
-- the release stage contains the binary at `0755` plus desktop entry, icon,
-  and AppStream metadata at `0644`;
-- SVG/XML parsing and `git diff --check` pass;
-- the system installation appears as **Profile Editor** in Xfce Settings with
-  the expected icon and launches successfully;
-- formatting and Clippy pass with warnings denied for both all features and
-  the camera-disabled configuration;
-- all-feature testing passes with 35 unit tests plus the resource test, and
-  camera-disabled testing passes with 24 unit tests plus the resource test;
-- both GtkBuilder templates validate against the active desktop display.
+- release and installation scripts pass POSIX shell syntax checks;
+- the workflow parses as YAML and all external actions are pinned to full
+  commit hashes; the newly added artifact actions are MIT-licensed;
+- the responsive release stage passes and contains the binary at `0755` plus
+  desktop metadata, icon, licence, and copyright files at `0644`;
+- Meson and Cargo both report version `0.1.0`;
+- formatting, Clippy, and tests pass for all features and for the
+  camera-disabled configuration (35 and 24 unit tests respectively, plus the
+  resource test in each configuration);
+- local package construction is unavailable on the Fedora development machine
+  because `dpkg-deb`, `dpkg-shlibdeps`, and `rpmbuild` are not installed; the
+  release workflow's pull-request run is the package-construction checkpoint.
 
 ## Completed phases
 
@@ -100,7 +95,15 @@ Focused verification completed:
 - The Xfce Settings launcher, scalable icon, AppStream metadata, translation
   extraction, staged layout checks, and CI metadata validation are implemented.
 - Xfce Settings installation and launch acceptance passed; portable distro
-  packaging guidance remains.
+  packaging metadata and guidance are implemented, pending target-distribution
+  installation tests.
+
+### Phase 7 — CI and release automation (in progress)
+
+- Manual and tag-triggered release-package builds are implemented without a
+  matrix or schedule.
+- Tag builds create a draft release only; workflow execution and artifact
+  inspection remain before this phase is complete.
 
 ## Build and workflow decisions
 
