@@ -10,8 +10,7 @@ const RESOURCE_PATHS: &[&str] = &[
 
 #[test]
 fn application_resources_are_embedded() {
-    gio::resources_register_include!("xfce4_profile_editor.gresource")
-        .expect("failed to register test resources");
+    gio::resources_register_include!("xfce4_profile_editor.gresource").expect("failed to register test resources");
 
     for path in RESOURCE_PATHS {
         gio::resources_lookup_data(path, gio::ResourceLookupFlags::NONE)

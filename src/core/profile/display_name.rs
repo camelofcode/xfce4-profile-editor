@@ -3,6 +3,7 @@
 //! AccountsService-backed display-name state and persistence.
 
 use super::accounts::{AccountsError, set_display_name};
+use super::models::DisplayNameSaveOutcome;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct DisplayNameState {
@@ -20,19 +21,6 @@ impl DisplayNameState {
 
     pub(crate) fn matches(&self, display_name: &str) -> bool {
         self.display_name == normalize(display_name)
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct DisplayNameSaveOutcome {
-    state: DisplayNameState,
-    display_name: String,
-    saved: bool,
-}
-
-impl DisplayNameSaveOutcome {
-    pub(crate) fn into_parts(self) -> (DisplayNameState, String, bool) {
-        (self.state, self.display_name, self.saved)
     }
 }
 
@@ -129,9 +117,6 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(
-            call.into_inner(),
-            Some((1000, "Lovelace, Ada: Countess".to_owned()))
-        );
+        assert_eq!(call.into_inner(), Some((1000, "Lovelace, Ada: Countess".to_owned())));
     }
 }

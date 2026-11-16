@@ -2,7 +2,7 @@
 
 # Project Progress
 
-Last updated: 2026-11-15
+Last updated: 2026-11-16
 
 This is the concise handoff record. `IMPLEMENTATION_PLAN.md` is the source of
 truth for current scope and architecture.
@@ -13,8 +13,8 @@ truth for current scope and architecture.
 - Repository base: `5679c47` (merged public pull-request workflow)
 - Archived full-field implementation tag:
   `archive/full-profile-fields-2026-11-15` (pushed to `origin`)
-- Current checkpoint: Whisker-focused scope simplification — pull request #2
-  open for review
+- Current checkpoint: Whisker-focused scope simplification and readability
+  refactor — pull request #2 open for review
 - Next checkpoint after merge: Phase 6 desktop integration and packaging
 - Expected repository state after handoff: committed topic branch pushed with
   a pull request open against `main`
@@ -51,10 +51,19 @@ Implemented in the worktree:
 - grouped core code into cohesive `profile` and `camera` domains, with camera
   capture isolated from device discovery and `core/mod.rs` retained as the UI
   façade;
+- separated independent production data carriers into named files under the
+  profile domain's `models` module (and alongside the smaller camera domain),
+  while retaining stateful resources and tightly coupled errors with behavior;
 - updated CI, translation inputs, repository guidance, plan, and packaging
   documentation for the reduced architecture;
 - reduced the profile window from 560×600 to a fixed 460×360 and removed the
   disabled Help button;
+- split the profile window's single large implementation into named loading,
+  display-name, avatar, camera, and status modules while retaining one GTK
+  subclass and keeping lifecycle wiring in the module root;
+- split the camera window into GTK lifecycle wiring, capture-worker
+  coordination, and frame-preview interaction modules without adding another
+  controller type;
 - preserved the prior implementation in the pushed archival tag above.
 
 The project no longer owns an elevation policy. AccountsService remains free

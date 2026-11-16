@@ -1,23 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//! Current-user identity needed by the profile domain.
+//! Current-user lookup for the active desktop session.
 
 use std::ffi::OsString;
 use std::path::PathBuf;
 
 use thiserror::Error;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct CurrentUser {
-    pub(crate) uid: u32,
-    pub(crate) home_directory: PathBuf,
-}
+use super::models::CurrentUser;
 
 pub(crate) fn current_user() -> Result<CurrentUser, CurrentUserError> {
-    current_user_from(
-        rustix::process::geteuid().as_raw(),
-        std::env::var_os("HOME"),
-    )
+    current_user_from(rustix::process::geteuid().as_raw(), std::env::var_os("HOME"))
 }
 
 #[derive(Debug, Error)]
@@ -28,10 +21,7 @@ pub(crate) enum CurrentUserError {
     InvalidHomeDirectory,
 }
 
-fn current_user_from(
-    uid: u32,
-    home_directory: Option<OsString>,
-) -> Result<CurrentUser, CurrentUserError> {
+fn current_user_from(uid: u32, home_directory: Option<OsString>) -> Result<CurrentUser, CurrentUserError> {
     let home_directory = home_directory
         .filter(|value| !value.is_empty())
         .map(PathBuf::from)
@@ -40,14 +30,13 @@ fn current_user_from(
         return Err(CurrentUserError::InvalidHomeDirectory);
     }
 
-    Ok(CurrentUser {
-        uid,
-        home_directory,
-    })
+    Ok(CurrentUser { uid, home_directory })
 }
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
 
     #[test]

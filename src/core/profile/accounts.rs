@@ -8,11 +8,7 @@ use thiserror::Error;
 use zbus::proxy::MethodFlags;
 use zbus::{Connection, DynamicTuple, OwnedObjectPath, Proxy, proxy};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct AccountDetails {
-    pub(crate) display_name: String,
-    pub(crate) icon_file: Option<PathBuf>,
-}
+use super::models::AccountDetails;
 
 pub(super) fn load_account_details(uid: u32) -> Result<AccountDetails, AccountsError> {
     zbus::block_on(load_details(uid)).map_err(AccountsError::Dbus)
@@ -83,11 +79,7 @@ async fn call_string_method(uid: u32, method: &str, value: &str) -> zbus::Result
     )
     .await?;
     let _: Option<()> = user
-        .call_with_flags(
-            method,
-            MethodFlags::ALLOW_INTERACTIVE_AUTH,
-            &DynamicTuple((value,)),
-        )
+        .call_with_flags(method, MethodFlags::ALLOW_INTERACTIVE_AUTH, &DynamicTuple((value,)))
         .await?;
     Ok(())
 }
@@ -96,10 +88,7 @@ async fn load_details(uid: u32) -> zbus::Result<AccountDetails> {
     let connection = Connection::system().await?;
     let accounts = AccountsProxy::new(&connection).await?;
     let path = accounts.find_user_by_id(i64::from(uid)).await?;
-    let user = AccountsUserProxy::builder(&connection)
-        .path(path)
-        .build()
-        .await?;
+    let user = AccountsUserProxy::builder(&connection).path(path).build().await?;
     let display_name = user.real_name().await?;
     let icon_file = user.icon_file().await?;
 

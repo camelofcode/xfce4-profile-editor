@@ -9,17 +9,13 @@ use std::thread::{self, JoinHandle};
 
 use image::{DynamicImage, ImageDecoder, ImageFormat, ImageReader, Limits};
 use nokhwa::pixel_format::RgbFormat;
-use nokhwa::utils::{
-    ApiBackend, CameraFormat, CameraIndex, FrameFormat, RequestedFormat, RequestedFormatType,
-};
+use nokhwa::utils::{ApiBackend, CameraFormat, CameraIndex, FrameFormat, RequestedFormat, RequestedFormatType};
 use nokhwa::{Buffer, Camera};
 use thiserror::Error;
 
-use super::CameraDevice;
+use super::device::CameraDevice;
+use super::frame::{CameraFrame, MAX_FRAME_DIMENSION, MAX_FRAME_PIXELS, validate_frame_dimensions};
 
-const BYTES_PER_PIXEL: usize = 3;
-const MAX_FRAME_DIMENSION: u32 = 4_096;
-const MAX_FRAME_PIXELS: u64 = 32_000_000;
 const MAX_FRAME_ALLOCATION: u64 = 128 * 1024 * 1024;
 const TARGET_WIDTH: u32 = 640;
 const TARGET_HEIGHT: u32 = 480;
@@ -32,37 +28,6 @@ const SUPPORTED_FRAME_FORMATS: [FrameFormat; 6] = [
     FrameFormat::RAWBGR,
     FrameFormat::GRAY,
 ];
-
-/// An owned RGB888 frame that contains no GTK or backend-specific types.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct CameraFrame {
-    width: u32,
-    height: u32,
-    rgb: Vec<u8>,
-}
-
-impl CameraFrame {
-    pub(crate) fn new(width: u32, height: u32, rgb: Vec<u8>) -> Result<Self, CameraCaptureError> {
-        validate_frame(width, height, rgb.len())?;
-        Ok(Self { width, height, rgb })
-    }
-
-    pub(crate) fn width(&self) -> u32 {
-        self.width
-    }
-
-    pub(crate) fn height(&self) -> u32 {
-        self.height
-    }
-
-    pub(crate) fn rgb(&self) -> &[u8] {
-        &self.rgb
-    }
-
-    pub(crate) fn into_parts(self) -> (u32, u32, Vec<u8>) {
-        (self.width, self.height, self.rgb)
-    }
-}
 
 /// The observable state of a capture worker.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -87,11 +52,7 @@ pub(crate) enum CameraCaptureError {
     #[error("camera frame could not be decoded: {details}")]
     Decode { details: String },
     #[error("camera frame dimensions or data length are invalid: {width}x{height}, {bytes} bytes")]
-    InvalidFrame {
-        width: u32,
-        height: u32,
-        bytes: usize,
-    },
+    InvalidFrame { width: u32, height: u32, bytes: usize },
     #[error("camera capture worker stopped unexpectedly")]
     WorkerPanicked,
     #[error("camera capture worker could not be started: {details}")]
@@ -121,11 +82,7 @@ impl CameraCapture {
 
     pub(crate) fn shutdown(mut self) -> Result<(), CameraCaptureError> {
         self.request_stop();
-        if self
-            .worker
-            .take()
-            .is_some_and(|worker| worker.join().is_err())
-        {
+        if self.worker.take().is_some_and(|worker| worker.join().is_err()) {
             return Err(CameraCaptureError::WorkerPanicked);
         }
         Ok(())
@@ -142,8 +99,7 @@ trait FrameSource {
     fn next_frame(&mut self) -> Result<CameraFrame, CameraCaptureError>;
 }
 
-type SourceFactory =
-    Box<dyn FnOnce() -> Result<Box<dyn FrameSource>, CameraCaptureError> + Send + 'static>;
+type SourceFactory = Box<dyn FnOnce() -> Result<Box<dyn FrameSource>, CameraCaptureError> + Send + 'static>;
 
 pub(crate) fn start_camera_capture(device: CameraDevice) -> CameraCapture {
     start_capture_with(Box::new(move || {
@@ -222,23 +178,17 @@ struct NokhwaFrameSource {
 
 impl NokhwaFrameSource {
     fn open(device: CameraDevice) -> Result<Self, CameraCaptureError> {
-        let request =
-            RequestedFormat::with_formats(RequestedFormatType::None, &SUPPORTED_FRAME_FORMATS);
-        let mut camera = Camera::with_backend(
-            CameraIndex::Index(device.index),
-            request,
-            ApiBackend::Video4Linux,
-        )
-        .map_err(|error| CameraCaptureError::Open {
-            details: error.to_string(),
-        })?;
+        let request = RequestedFormat::with_formats(RequestedFormatType::None, &SUPPORTED_FRAME_FORMATS);
+        let mut camera = Camera::with_backend(CameraIndex::Index(device.index()), request, ApiBackend::Video4Linux)
+            .map_err(|error| CameraCaptureError::Open {
+                details: error.to_string(),
+            })?;
 
-        let formats =
-            camera
-                .compatible_camera_formats()
-                .map_err(|error| CameraCaptureError::Configure {
-                    details: error.to_string(),
-                })?;
+        let formats = camera
+            .compatible_camera_formats()
+            .map_err(|error| CameraCaptureError::Configure {
+                details: error.to_string(),
+            })?;
         let format = preferred_format(&formats).ok_or_else(|| CameraCaptureError::Configure {
             details: "the device exposes no supported frame format".to_owned(),
         })?;
@@ -250,23 +200,18 @@ impl NokhwaFrameSource {
             .map_err(|error| CameraCaptureError::Configure {
                 details: error.to_string(),
             })?;
-        camera
-            .open_stream()
-            .map_err(|error| CameraCaptureError::Stream {
-                details: error.to_string(),
-            })?;
+        camera.open_stream().map_err(|error| CameraCaptureError::Stream {
+            details: error.to_string(),
+        })?;
         Ok(Self { camera })
     }
 }
 
 impl FrameSource for NokhwaFrameSource {
     fn next_frame(&mut self) -> Result<CameraFrame, CameraCaptureError> {
-        let buffer = self
-            .camera
-            .frame()
-            .map_err(|error| CameraCaptureError::Frame {
-                details: error.to_string(),
-            })?;
+        let buffer = self.camera.frame().map_err(|error| CameraCaptureError::Frame {
+            details: error.to_string(),
+        })?;
         decode_frame(&buffer)
     }
 }
@@ -279,14 +224,12 @@ fn preferred_format(formats: &[CameraFormat]) -> Option<CameraFormat> {
             let resolution = format.resolution();
             resolution.width() <= MAX_FRAME_DIMENSION
                 && resolution.height() <= MAX_FRAME_DIMENSION
-                && u64::from(resolution.width()) * u64::from(resolution.height())
-                    <= MAX_FRAME_PIXELS
+                && u64::from(resolution.width()) * u64::from(resolution.height()) <= MAX_FRAME_PIXELS
         })
         .min_by_key(|format| {
             let resolution = format.resolution();
             (
-                resolution.width().abs_diff(TARGET_WIDTH)
-                    + resolution.height().abs_diff(TARGET_HEIGHT),
+                resolution.width().abs_diff(TARGET_WIDTH) + resolution.height().abs_diff(TARGET_HEIGHT),
                 frame_format_priority(format.format()),
                 format.frame_rate().abs_diff(TARGET_FRAME_RATE),
             )
@@ -321,61 +264,24 @@ fn decode_frame(buffer: &Buffer) -> Result<CameraFrame, CameraCaptureError> {
 
 fn decode_mjpeg(bytes: &[u8]) -> Result<CameraFrame, CameraCaptureError> {
     let reader = ImageReader::with_format(Cursor::new(bytes), ImageFormat::Jpeg);
-    let mut decoder = reader
-        .into_decoder()
-        .map_err(|error| CameraCaptureError::Decode {
-            details: error.to_string(),
-        })?;
+    let mut decoder = reader.into_decoder().map_err(|error| CameraCaptureError::Decode {
+        details: error.to_string(),
+    })?;
     let (width, height) = decoder.dimensions();
     validate_frame_dimensions(width, height)?;
     let mut limits = Limits::default();
     limits.max_image_width = Some(MAX_FRAME_DIMENSION);
     limits.max_image_height = Some(MAX_FRAME_DIMENSION);
     limits.max_alloc = Some(MAX_FRAME_ALLOCATION);
-    decoder
-        .set_limits(limits)
-        .map_err(|error| CameraCaptureError::Decode {
-            details: error.to_string(),
-        })?;
+    decoder.set_limits(limits).map_err(|error| CameraCaptureError::Decode {
+        details: error.to_string(),
+    })?;
     let rgb = DynamicImage::from_decoder(decoder)
         .map_err(|error| CameraCaptureError::Decode {
             details: error.to_string(),
         })?
         .into_rgb8();
     CameraFrame::new(rgb.width(), rgb.height(), rgb.into_raw())
-}
-
-fn validate_frame_dimensions(width: u32, height: u32) -> Result<(), CameraCaptureError> {
-    let pixels = u64::from(width) * u64::from(height);
-    if width == 0
-        || height == 0
-        || width > MAX_FRAME_DIMENSION
-        || height > MAX_FRAME_DIMENSION
-        || pixels > MAX_FRAME_PIXELS
-    {
-        return Err(CameraCaptureError::InvalidFrame {
-            width,
-            height,
-            bytes: 0,
-        });
-    }
-    Ok(())
-}
-
-fn validate_frame(width: u32, height: u32, byte_length: usize) -> Result<(), CameraCaptureError> {
-    validate_frame_dimensions(width, height)?;
-    let expected = u64::from(width)
-        .checked_mul(u64::from(height))
-        .and_then(|pixels| pixels.checked_mul(BYTES_PER_PIXEL as u64))
-        .and_then(|bytes| usize::try_from(bytes).ok());
-    if expected != Some(byte_length) {
-        return Err(CameraCaptureError::InvalidFrame {
-            width,
-            height,
-            bytes: byte_length,
-        });
-    }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -503,17 +409,5 @@ mod tests {
 
         assert_eq!((decoded.width(), decoded.height()), (2, 1));
         assert_eq!(decoded.rgb().len(), 6);
-    }
-
-    #[test]
-    fn rejects_malformed_frame_lengths() {
-        assert!(matches!(
-            CameraFrame::new(2, 2, vec![0; 11]),
-            Err(CameraCaptureError::InvalidFrame {
-                width: 2,
-                height: 2,
-                bytes: 11
-            })
-        ));
     }
 }

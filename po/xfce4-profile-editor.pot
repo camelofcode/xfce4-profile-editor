@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Xfce Profile Editor 0.1.0\n"
 "Report-Msgid-Bugs-To: chris@chrisclayton.dev\n"
-"POT-Creation-Date: 2026-11-15 22:49+0000\n"
-"PO-Revision-Date: 2026-11-15 22:49+0000\n"
+"POT-Creation-Date: 2026-11-15 23:53+0000\n"
+"PO-Revision-Date: 2026-11-15 23:50+0000\n"
 "Last-Translator: Chris Clayton <chris@chrisclayton.dev>\n"
 "Language-Team: Xfce Profile Editor translators <chris@chrisclayton.dev>\n"
 "Language: en_GB\n"
@@ -34,7 +34,7 @@ msgid "Choose photo"
 msgstr ""
 
 #: ui/windows/profile-window.ui:117 ui/windows/camera-window.ui:10
-#: src/ui/windows/camera_window.rs:133
+#: src/ui/windows/camera_window/mod.rs:134
 msgid "Take photo"
 msgstr ""
 
@@ -54,8 +54,8 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
-#: ui/windows/camera-window.ui:56 src/ui/windows/camera_window.rs:157
-#: src/ui/windows/camera_window.rs:287
+#: ui/windows/camera-window.ui:56 src/ui/windows/camera_window/capture.rs:31
+#: src/ui/windows/camera_window/capture.rs:106
 msgid "Starting camera…"
 msgstr ""
 
@@ -75,157 +75,158 @@ msgstr ""
 msgid "Use photo"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:182
-msgid "The current user account could not be read."
-msgstr ""
-
-#: src/ui/windows/profile_window.rs:184
-msgid "Profile loading stopped unexpectedly."
-msgstr ""
-
-#: src/ui/windows/profile_window.rs:265
-msgid "Profile image"
-msgstr ""
-
-#: src/ui/windows/profile_window.rs:290
+#: src/ui/windows/profile_window/avatar.rs:30
 msgid "Images"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:300
+#: src/ui/windows/profile_window/avatar.rs:40
 msgid "Choose a profile image"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:318
+#: src/ui/windows/profile_window/avatar.rs:58
 msgid "Only local image files can be used."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:332
+#: src/ui/windows/profile_window/avatar.rs:72
 msgid "The image chooser could not be opened."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:343 src/ui/windows/profile_window.rs:360
+#: src/ui/windows/profile_window/avatar.rs:83
+#: src/ui/windows/profile_window/avatar.rs:100
 msgid "Saving profile image…"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:387
+#: src/ui/windows/profile_window/avatar.rs:127
 msgid "Profile image saving stopped unexpectedly."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:403
+#: src/ui/windows/profile_window/avatar.rs:143
 msgid "Selected photo"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:414
+#: src/ui/windows/profile_window/avatar.rs:154
 msgid ""
 "The profile image was saved locally, but AccountsService could not be "
 "updated."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:419
+#: src/ui/windows/profile_window/avatar.rs:159
 msgid "Profile image saved."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:425
+#: src/ui/windows/profile_window/avatar.rs:165
 msgid "The photo preview could not be displayed."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:438
+#: src/ui/windows/profile_window/avatar.rs:178
 msgid "Removing profile image…"
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:471
+#: src/ui/windows/profile_window/avatar.rs:211
 msgid ""
 "The local profile image was removed, but AccountsService could not be "
 "updated."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:476
+#: src/ui/windows/profile_window/avatar.rs:216
 msgid "Profile image removed."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:488
+#: src/ui/windows/profile_window/avatar.rs:228
 msgid "Profile image removal stopped unexpectedly."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:567
-msgid "Unsaved profile changes."
-msgstr ""
-
-#: src/ui/windows/profile_window.rs:594
-msgid "Saving profile…"
-msgstr ""
-
-#: src/ui/windows/profile_window.rs:619
-msgid "The display name could not be saved. It is still in the form."
-msgstr ""
-
-#: src/ui/windows/profile_window.rs:625
-msgid "Profile saving stopped unexpectedly."
-msgstr ""
-
-#: src/ui/windows/profile_window.rs:637
-msgid "Profile saved."
-msgstr ""
-
-#: src/ui/windows/profile_window.rs:717
+#: src/ui/windows/profile_window/avatar.rs:265
 msgid "The selected image could not be used."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:719
+#: src/ui/windows/profile_window/avatar.rs:267
 msgid ""
 "The current user account could not be read. The profile image was not saved."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:721
+#: src/ui/windows/profile_window/avatar.rs:269
 msgid "The profile image could not be saved."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:728
+#: src/ui/windows/profile_window/avatar.rs:276
 msgid ""
 "The current user account could not be read. The profile image was not "
 "removed."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:730
+#: src/ui/windows/profile_window/avatar.rs:278
 msgid "The profile image could not be removed."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:745
+#: src/ui/windows/profile_window/display_name.rs:60
+msgid "Unsaved profile changes."
+msgstr ""
+
+#: src/ui/windows/profile_window/display_name.rs:82
+msgid "Saving profile…"
+msgstr ""
+
+#: src/ui/windows/profile_window/display_name.rs:107
+msgid "The display name could not be saved. It is still in the form."
+msgstr ""
+
+#: src/ui/windows/profile_window/display_name.rs:112
+msgid "Profile saving stopped unexpectedly."
+msgstr ""
+
+#: src/ui/windows/profile_window/display_name.rs:121
+msgid "Profile saved."
+msgstr ""
+
+#: src/ui/windows/profile_window/loading.rs:26
+msgid "The current user account could not be read."
+msgstr ""
+
+#: src/ui/windows/profile_window/loading.rs:28
+msgid "Profile loading stopped unexpectedly."
+msgstr ""
+
+#: src/ui/windows/profile_window/loading.rs:55
+msgid "Profile image"
+msgstr ""
+
+#: src/ui/windows/profile_window/status.rs:57
 msgid "Some profile information could not be loaded."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:758
+#: src/ui/windows/profile_window/status.rs:76
 msgid "AccountsService profile information could not be read."
 msgstr ""
 
-#: src/ui/windows/profile_window.rs:762
+#: src/ui/windows/profile_window/status.rs:80
 msgid "A profile image could not be used."
 msgstr ""
 
-#: src/ui/windows/camera_window.rs:346
+#: src/ui/windows/camera_window/capture.rs:138
 msgid "The camera could not be opened."
 msgstr ""
 
-#: src/ui/windows/camera_window.rs:348
+#: src/ui/windows/camera_window/capture.rs:140
 msgid "The camera uses an unsupported image format."
 msgstr ""
 
-#: src/ui/windows/camera_window.rs:350
+#: src/ui/windows/camera_window/capture.rs:142
 msgid "The camera is busy or unavailable."
 msgstr ""
 
-#: src/ui/windows/camera_window.rs:351
+#: src/ui/windows/camera_window/capture.rs:143
 msgid "The camera stopped providing images."
 msgstr ""
 
-#: src/ui/windows/camera_window.rs:352
+#: src/ui/windows/camera_window/capture.rs:144
 msgid "The camera provided an invalid image."
 msgstr ""
 
-#: src/ui/windows/camera_window.rs:353
+#: src/ui/windows/camera_window/capture.rs:145
 msgid "Camera capture stopped unexpectedly."
 msgstr ""
 
-#: src/ui/windows/camera_window.rs:354
+#: src/ui/windows/camera_window/capture.rs:146
 msgid "Camera capture could not be started."
 msgstr ""

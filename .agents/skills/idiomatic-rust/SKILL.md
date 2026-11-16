@@ -18,6 +18,10 @@ state or implementations.
 - Use a struct when instances carry data, enforce an invariant, own a resource,
   or have meaningful lifecycle/state. Methods should normally use that state;
   associated constructors and consuming accessors are appropriate.
+- Give an independent production domain data carrier its own clearly named
+  file within that domain. Do not split framework-required state holders,
+  behaviour-heavy resource types, tightly coupled private errors, or
+  incidental test-only structs solely to satisfy a one-type-per-file rule.
 - Introduce a trait when polymorphism is part of the real design or several
   operations form a meaningful replaceable interface. Do not add a trait and a
   zero-sized production implementation solely to fake one function in tests.

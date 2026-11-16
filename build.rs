@@ -8,10 +8,7 @@ use std::process::{Command, ExitStatus};
 use std::time::SystemTime;
 
 const SCSS_ENTRY_POINT: &str = "ui/sass/app.scss";
-const SCSS_PARTIALS: &[&str] = &[
-    "ui/sass/_profile-window.scss",
-    "ui/sass/_camera-window.scss",
-];
+const SCSS_PARTIALS: &[&str] = &["ui/sass/_profile-window.scss", "ui/sass/_camera-window.scss"];
 const RESOURCE_MANIFEST: &str = "resources.gresource.xml";
 const RESOURCE_OUTPUT: &str = "xfce4_profile_editor.gresource";
 
@@ -26,11 +23,7 @@ fn main() {
     let output_directory = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR is not set"));
     let compiled_css = output_directory.join("app.css");
 
-    compile_scss(
-        Path::new(SCSS_ENTRY_POINT),
-        &compiled_css,
-        latest_scss_modified(),
-    );
+    compile_scss(Path::new(SCSS_ENTRY_POINT), &compiled_css, latest_scss_modified());
 
     let resource_sources = [PathBuf::from("."), output_directory];
     glib_build_tools::compile_resources(&resource_sources, RESOURCE_MANIFEST, RESOURCE_OUTPUT);
@@ -47,12 +40,7 @@ fn latest_scss_modified() -> SystemTime {
 fn modified_time(path: &Path) -> SystemTime {
     fs::metadata(path)
         .and_then(|metadata| metadata.modified())
-        .unwrap_or_else(|error| {
-            panic!(
-                "failed to read {} modification time: {error}",
-                path.display()
-            )
-        })
+        .unwrap_or_else(|error| panic!("failed to read {} modification time: {error}", path.display()))
 }
 
 fn compile_scss(input: &Path, output: &Path, source_modified: SystemTime) {
@@ -79,9 +67,7 @@ fn compile_with_sassc(input: &Path, output: &Path) {
         .arg(input)
         .arg(output)
         .status()
-        .unwrap_or_else(|error| {
-            panic!("neither sass nor sassc could be run to compile {SCSS_ENTRY_POINT}: {error}")
-        });
+        .unwrap_or_else(|error| panic!("neither sass nor sassc could be run to compile {SCSS_ENTRY_POINT}: {error}"));
 
     require_success("sassc", status);
 }
@@ -91,8 +77,8 @@ fn require_success(program: &str, status: ExitStatus) {
 }
 
 fn replace_if_changed(candidate: &Path, output: &Path, source_modified: SystemTime) {
-    let candidate_bytes = fs::read(candidate)
-        .unwrap_or_else(|error| panic!("failed to read {}: {error}", candidate.display()));
+    let candidate_bytes =
+        fs::read(candidate).unwrap_or_else(|error| panic!("failed to read {}: {error}", candidate.display()));
     let unchanged = fs::read(output).is_ok_and(|current_bytes| current_bytes == candidate_bytes);
 
     if !unchanged {
@@ -102,13 +88,7 @@ fn replace_if_changed(candidate: &Path, output: &Path, source_modified: SystemTi
             .write(true)
             .open(output)
             .and_then(|file| file.set_times(FileTimes::new().set_modified(source_modified)))
-            .unwrap_or_else(|error| {
-                panic!(
-                    "failed to preserve {} modification time: {error}",
-                    output.display()
-                )
-            });
+            .unwrap_or_else(|error| panic!("failed to preserve {} modification time: {error}", output.display()));
     }
-    fs::remove_file(candidate)
-        .unwrap_or_else(|error| panic!("failed to remove {}: {error}", candidate.display()));
+    fs::remove_file(candidate).unwrap_or_else(|error| panic!("failed to remove {}: {error}", candidate.display()));
 }

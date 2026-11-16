@@ -114,20 +114,40 @@ Cargo home and workspace `target/` cache. There is no parallel Makefile path.
 │   ├── core/
 │   │   ├── camera/
 │   │   │   ├── capture.rs
+│   │   │   ├── device.rs
+│   │   │   ├── frame.rs
 │   │   │   └── mod.rs
 │   │   ├── profile/
 │   │   │   ├── accounts.rs
-│   │   │   ├── avatar.rs
-│   │   │   ├── current_user.rs
+│   │   │   ├── avatar_persistence.rs
+│   │   │   ├── current_user_lookup.rs
 │   │   │   ├── display_name.rs
 │   │   │   ├── image.rs
 │   │   │   ├── loader.rs
+│   │   │   ├── models/
+│   │   │   │   ├── account_details.rs
+│   │   │   │   ├── avatar.rs
+│   │   │   │   ├── avatar_save_outcome.rs
+│   │   │   │   ├── current_user.rs
+│   │   │   │   ├── display_name_save_outcome.rs
+│   │   │   │   ├── load_warning.rs
+│   │   │   │   ├── loaded_profile.rs
+│   │   │   │   └── mod.rs
 │   │   │   └── mod.rs
 │   │   └── mod.rs
 │   └── ui/
 │       └── windows/
-│           ├── camera_window.rs
-│           └── profile_window.rs
+│           ├── camera_window/
+│           │   ├── capture.rs
+│           │   ├── mod.rs
+│           │   └── preview.rs
+│           └── profile_window/
+│               ├── avatar.rs
+│               ├── camera.rs
+│               ├── display_name.rs
+│               ├── loading.rs
+│               ├── mod.rs
+│               └── status.rs
 └── ui/
     ├── sass/
     └── windows/
@@ -144,10 +164,21 @@ and persistence belong in `src/core/`.
 Core code is grouped by product domain rather than technical layer. The
 `profile` domain keeps its data and AccountsService/filesystem behaviour
 together; the `camera` domain owns device discovery, frame capture, and its
-worker lifecycle. `src/core/mod.rs` is the single façade consumed by the UI.
+worker lifecycle. The larger profile domain groups its independent production
+data carriers under `profile/models/`, one named file per value; stateful
+resources, persistence operations, and their tightly coupled errors stay in
+behaviour-focused modules.
+`src/core/mod.rs` is the single façade consumed by the UI.
 
 Dependency direction is always `src/ui/ -> src/core/`. Core APIs use plain
 Rust values and typed errors and must not import GTK or GDK.
+
+Each window remains one GTK subclass. Its module root owns template binding,
+signal connections, lifecycle hooks, and construction. Named profile-window
+modules contain the loading, display-name, avatar, camera, and status flows;
+named camera-window modules separate capture-worker coordination from frame
+preview interactions. These are source-navigation boundaries, not additional
+controller objects.
 
 ## 6. Core loading
 

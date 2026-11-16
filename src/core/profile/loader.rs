@@ -7,46 +7,11 @@ use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
-use super::accounts::{AccountDetails, AccountsError, load_account_details};
-use super::current_user::{CurrentUser, CurrentUserError, current_user};
+use super::accounts::{AccountsError, load_account_details};
+use super::current_user_lookup::{CurrentUserError, current_user};
 use super::display_name::DisplayNameState;
 use super::image::MAX_SOURCE_BYTES;
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct LoadedProfile {
-    pub(crate) display_name: String,
-    pub(crate) avatars: Vec<Avatar>,
-    pub(crate) warnings: Vec<LoadWarning>,
-    pub(crate) display_name_state: Option<DisplayNameState>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct Avatar {
-    pub(crate) bytes: Vec<u8>,
-    source_path: PathBuf,
-}
-
-impl Avatar {
-    pub(crate) fn source_path(&self) -> &Path {
-        &self.source_path
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum LoadWarning {
-    AccountsServiceUnavailable(String),
-    AvatarUnavailable { path: PathBuf, reason: String },
-}
-
-impl LoadWarning {
-    pub(crate) fn diagnostic(&self) -> &str {
-        match self {
-            Self::AccountsServiceUnavailable(reason) | Self::AvatarUnavailable { reason, .. } => {
-                reason
-            }
-        }
-    }
-}
+use super::models::{AccountDetails, Avatar, CurrentUser, LoadWarning, LoadedProfile};
 
 pub(crate) fn load_current_profile() -> Result<LoadedProfile, CurrentUserError> {
     load_with(current_user()?, load_account_details)
@@ -93,10 +58,7 @@ fn load_avatar_candidates(
     candidates
         .into_iter()
         .filter_map(|path| match read_avatar(&path) {
-            Ok(bytes) => Some(Avatar {
-                bytes,
-                source_path: path,
-            }),
+            Ok(bytes) => Some(Avatar::new(bytes, path)),
             Err(AvatarReadError::NotFound) => None,
             Err(error) => {
                 warnings.push(LoadWarning::AvatarUnavailable {

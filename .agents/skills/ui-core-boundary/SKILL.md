@@ -17,6 +17,14 @@ Classify every new responsibility before writing code:
 - Put visual rules in `ui/sass/`; Rust may only toggle semantic state classes.
 - Put template binding, signal/action wiring, window lifecycle, and rendering
   of core results in `src/ui/`.
+- When one window owns several distinct UI flows, keep its GTK subclass and
+  lifecycle wiring in the window module root and group each flow in a named
+  child module. Extend the same window type across those modules; do not add
+  controller structs solely to make files smaller.
+- Connect GTK signals through their generated typed `connect_*` methods. When
+  a handler must not retain a window or widget, prefer
+  `glib::clone!(#[weak] object, ...)` over repeated manual downgrade/upgrade
+  blocks or project-specific signal-connection helpers.
 - Put models, validation, AccountsService/D-Bus communication, current-user
   lookup, filesystem work, image transformation, and camera capture in
   `src/core/`.

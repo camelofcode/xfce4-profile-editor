@@ -78,9 +78,7 @@ fn normalise_avatar(source: &[u8]) -> Result<Vec<u8>, ImageNormalisationError> {
     let reader = ImageReader::new(Cursor::new(source))
         .with_guessed_format()
         .map_err(|error| ImageNormalisationError::Decode(image::ImageError::IoError(error)))?;
-    let mut decoder = reader
-        .into_decoder()
-        .map_err(ImageNormalisationError::Decode)?;
+    let mut decoder = reader.into_decoder().map_err(ImageNormalisationError::Decode)?;
     let (width, height) = decoder.dimensions();
     validate_dimensions(width, height)?;
 
@@ -88,15 +86,10 @@ fn normalise_avatar(source: &[u8]) -> Result<Vec<u8>, ImageNormalisationError> {
     limits.max_image_width = Some(MAX_SOURCE_DIMENSION);
     limits.max_image_height = Some(MAX_SOURCE_DIMENSION);
     limits.max_alloc = Some(MAX_DECODER_ALLOCATION);
-    decoder
-        .set_limits(limits)
-        .map_err(ImageNormalisationError::Decode)?;
+    decoder.set_limits(limits).map_err(ImageNormalisationError::Decode)?;
 
-    let orientation = decoder
-        .orientation()
-        .map_err(ImageNormalisationError::Decode)?;
-    let mut decoded =
-        DynamicImage::from_decoder(decoder).map_err(ImageNormalisationError::Decode)?;
+    let orientation = decoder.orientation().map_err(ImageNormalisationError::Decode)?;
+    let mut decoded = DynamicImage::from_decoder(decoder).map_err(ImageNormalisationError::Decode)?;
     decoded.apply_orientation(orientation);
 
     normalise_decoded(&decoded)
@@ -104,14 +97,10 @@ fn normalise_avatar(source: &[u8]) -> Result<Vec<u8>, ImageNormalisationError> {
 
 /// Normalises one validated RGB camera frame without re-encoding it first.
 #[cfg(feature = "camera")]
-pub(crate) fn normalise_avatar_rgb(
-    width: u32,
-    height: u32,
-    rgb: Vec<u8>,
-) -> Result<Vec<u8>, ImageNormalisationError> {
+pub(crate) fn normalise_avatar_rgb(width: u32, height: u32, rgb: Vec<u8>) -> Result<Vec<u8>, ImageNormalisationError> {
     validate_dimensions(width, height)?;
-    let image = RgbImage::from_raw(width, height, rgb)
-        .ok_or(ImageNormalisationError::InvalidPixelBuffer { width, height })?;
+    let image =
+        RgbImage::from_raw(width, height, rgb).ok_or(ImageNormalisationError::InvalidPixelBuffer { width, height })?;
     normalise_decoded(&DynamicImage::ImageRgb8(image))
 }
 
@@ -119,12 +108,7 @@ fn normalise_decoded(decoded: &DynamicImage) -> Result<Vec<u8>, ImageNormalisati
     let (width, height) = decoded.dimensions();
     let side = width.min(height);
     let crop = decoded.view((width - side) / 2, (height - side) / 2, side, side);
-    let normalised = image::imageops::resize(
-        &*crop,
-        NORMALISED_SIZE,
-        NORMALISED_SIZE,
-        FilterType::Lanczos3,
-    );
+    let normalised = image::imageops::resize(&*crop, NORMALISED_SIZE, NORMALISED_SIZE, FilterType::Lanczos3);
 
     let mut output = Vec::new();
     PngEncoder::new(&mut output)
@@ -166,10 +150,7 @@ mod tests {
 
     fn temporary_file(name: &str) -> std::path::PathBuf {
         let sequence = NEXT_TEMPORARY_FILE.fetch_add(1, Ordering::Relaxed);
-        std::env::temp_dir().join(format!(
-            "xfce4-profile-editor-{}-{sequence}-{name}",
-            std::process::id()
-        ))
+        std::env::temp_dir().join(format!("xfce4-profile-editor-{}-{sequence}-{name}", std::process::id()))
     }
 
     fn png_bytes(image: &RgbaImage) -> Vec<u8> {
@@ -188,12 +169,7 @@ mod tests {
     fn jpeg_with_orientation(image: &RgbImage, orientation: u8) -> Vec<u8> {
         let mut jpeg = Vec::new();
         JpegEncoder::new_with_quality(&mut jpeg, 95)
-            .write_image(
-                image.as_raw(),
-                image.width(),
-                image.height(),
-                ColorType::Rgb8.into(),
-            )
+            .write_image(image.as_raw(), image.width(), image.height(), ColorType::Rgb8.into())
             .unwrap();
 
         let mut exif = b"Exif\0\0II*\0\x08\0\0\0\x01\0\x12\x01\x03\0\x01\0\0\0".to_vec();
@@ -261,13 +237,7 @@ mod tests {
 
     #[test]
     fn applies_embedded_exif_orientation_before_cropping() {
-        let source = ImageBuffer::from_fn(40, 20, |x, _| {
-            if x < 20 {
-                Rgb([255, 0, 0])
-            } else {
-                Rgb([0, 255, 0])
-            }
-        });
+        let source = ImageBuffer::from_fn(40, 20, |x, _| if x < 20 { Rgb([255, 0, 0]) } else { Rgb([0, 255, 0]) });
 
         let output = normalise_avatar(&jpeg_with_orientation(&source, 6)).unwrap();
         let decoded = decode_normalised(&output);
@@ -275,10 +245,7 @@ mod tests {
         let bottom = decoded.get_pixel(256, 448).0;
 
         assert!(top[0] > 200 && top[1] < 50, "unexpected top pixel: {top:?}");
-        assert!(
-            bottom[1] > 200 && bottom[0] < 50,
-            "unexpected bottom pixel: {bottom:?}"
-        );
+        assert!(bottom[1] > 200 && bottom[0] < 50, "unexpected bottom pixel: {bottom:?}");
     }
 
     #[test]
@@ -294,10 +261,7 @@ mod tests {
 
     #[test]
     fn rejects_empty_oversized_and_invalid_input() {
-        assert!(matches!(
-            normalise_avatar(&[]),
-            Err(ImageNormalisationError::Empty)
-        ));
+        assert!(matches!(normalise_avatar(&[]), Err(ImageNormalisationError::Empty)));
         assert!(matches!(
             normalise_avatar(&vec![0; MAX_SOURCE_BYTES + 1]),
             Err(ImageNormalisationError::SourceTooLarge)

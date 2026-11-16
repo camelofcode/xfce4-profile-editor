@@ -4,6 +4,20 @@
 
 use thiserror::Error;
 
+#[cfg(feature = "camera")]
+mod capture;
+#[cfg(feature = "camera")]
+mod device;
+#[cfg(feature = "camera")]
+mod frame;
+
+#[cfg(feature = "camera")]
+pub(crate) use capture::{CameraCapture, CameraCaptureError, CameraCaptureStatus, start_camera_capture};
+#[cfg(feature = "camera")]
+pub(crate) use device::CameraDevice;
+#[cfg(feature = "camera")]
+pub(crate) use frame::CameraFrame;
+
 /// The camera devices currently usable by the application.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum CameraAvailability {
@@ -16,25 +30,6 @@ pub(crate) enum CameraAvailability {
     /// One or more devices are available for capture.
     #[cfg(feature = "camera")]
     Available(Vec<CameraDevice>),
-}
-
-/// GTK-independent information needed to open a Linux camera.
-#[cfg(feature = "camera")]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct CameraDevice {
-    index: u32,
-    name: String,
-}
-
-#[cfg(feature = "camera")]
-impl CameraDevice {
-    fn new(index: u32, name: String) -> Self {
-        Self { index, name }
-    }
-
-    pub(crate) fn name(&self) -> &str {
-        &self.name
-    }
 }
 
 /// A recoverable failure while querying the camera backend.
@@ -106,7 +101,7 @@ fn query_v4l_capture_devices() -> Result<Vec<CameraDevice>, CameraDiscoveryError
         let name = node.name().unwrap_or_else(|| capabilities.card.clone());
         devices.push(CameraDevice::new(index, name));
     }
-    devices.sort_by_key(|device| device.index);
+    devices.sort_by_key(CameraDevice::index);
 
     if devices.is_empty()
         && let Some(details) = first_error
@@ -123,14 +118,6 @@ fn supports_nokhwa_capture(capabilities: v4l::capability::Flags) -> bool {
     capabilities.contains(Flags::VIDEO_CAPTURE | Flags::STREAMING)
 }
 
-#[cfg(feature = "camera")]
-mod capture;
-
-#[cfg(feature = "camera")]
-pub(crate) use capture::{
-    CameraCapture, CameraCaptureError, CameraCaptureStatus, CameraFrame, start_camera_capture,
-};
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,10 +125,7 @@ mod tests {
     #[cfg(feature = "camera")]
     #[test]
     fn reports_no_devices_without_assuming_a_default_index() {
-        assert_eq!(
-            discover_with(|| Ok(Vec::new())),
-            Ok(CameraAvailability::NoDevices)
-        );
+        assert_eq!(discover_with(|| Ok(Vec::new())), Ok(CameraAvailability::NoDevices));
     }
 
     #[cfg(feature = "camera")]
@@ -149,12 +133,8 @@ mod tests {
     fn accepts_only_streaming_video_capture_nodes() {
         use v4l::capability::Flags;
 
-        assert!(supports_nokhwa_capture(
-            Flags::VIDEO_CAPTURE | Flags::STREAMING
-        ));
-        assert!(!supports_nokhwa_capture(
-            Flags::META_CAPTURE | Flags::STREAMING
-        ));
+        assert!(supports_nokhwa_capture(Flags::VIDEO_CAPTURE | Flags::STREAMING));
+        assert!(!supports_nokhwa_capture(Flags::META_CAPTURE | Flags::STREAMING));
         assert!(!supports_nokhwa_capture(Flags::VIDEO_CAPTURE));
     }
 
