@@ -10,11 +10,7 @@ release_build="$project_root/target/meson-release"
 stage_root="$project_root/target/staged-install"
 mode_detector="$project_root/.agents/skills/resource-aware-builds/scripts/detect-build-mode.sh"
 staged_application="$stage_root/usr/bin/xfce4-profile-editor"
-staged_helper="$stage_root/usr/libexec/xfce4-profile-editor-helper"
-staged_policy="$stage_root/usr/share/polkit-1/actions/io.github.camelofcode.Xfce4ProfileEditor.policy"
 installed_application=/usr/bin/xfce4-profile-editor
-installed_helper=/usr/libexec/xfce4-profile-editor-helper
-installed_policy=/usr/share/polkit-1/actions/io.github.camelofcode.Xfce4ProfileEditor.policy
 
 usage() {
     cat <<'EOF'
@@ -28,8 +24,10 @@ Commands:
   cycle    Install, verify, and launch the system installation.
   help     Show this help.
 
-Only install and cycle modify /usr or request elevation. This script never
-invokes the privileged profile helper or changes account data.
+Only install and cycle modify /usr or request elevation.
+
+This is the authoritative application build workflow. Every command reuses
+the workspace Cargo cache under target/; Rust checks use that same cache.
 EOF
 }
 
@@ -105,23 +103,17 @@ require_root_owner() {
 verify_layout() {
     root=$1
     application="$root/usr/bin/xfce4-profile-editor"
-    helper="$root/usr/libexec/xfce4-profile-editor-helper"
-    policy="$root/usr/share/polkit-1/actions/io.github.camelofcode.Xfce4ProfileEditor.policy"
 
     [ -x "$application" ] || fail "application is missing from $root"
-    [ -x "$helper" ] || fail "helper is missing from $root"
-    [ -f "$policy" ] || fail "Polkit policy is missing from $root"
     require_mode "$application" 755
-    require_mode "$helper" 755
-    require_mode "$policy" 644
-    ! grep -Fq '@libexecdir@' "$policy" || fail "Polkit helper path was not rendered"
-    grep -Fq "/usr/libexec/xfce4-profile-editor-helper</annotate>" "$policy" || {
-        fail "Polkit policy does not contain the expected absolute helper path"
-    }
 }
 
 stage_release() {
     build_release
+    [ "$stage_root" = "$project_root/target/staged-install" ] || {
+        fail "refusing to clear unexpected staging path: $stage_root"
+    }
+    rm -rf -- "$stage_root"
     DESTDIR="$stage_root" meson install --no-rebuild -C "$release_build"
     verify_layout "$stage_root"
     printf 'Staged installation verified under %s\n' "$stage_root"
@@ -129,18 +121,8 @@ stage_release() {
 
 verify_system_install() {
     [ -x "$installed_application" ] || fail "installed application is missing"
-    [ -x "$installed_helper" ] || fail "installed helper is missing"
-    [ -f "$installed_policy" ] || fail "installed Polkit policy is missing"
     require_mode "$installed_application" 755
-    require_mode "$installed_helper" 755
-    require_mode "$installed_policy" 644
     require_root_owner "$installed_application"
-    require_root_owner "$installed_helper"
-    require_root_owner "$installed_policy"
-    ! grep -Fq '@libexecdir@' "$installed_policy" || fail "installed policy path was not rendered"
-    grep -Fq "/usr/libexec/xfce4-profile-editor-helper</annotate>" "$installed_policy" || {
-        fail "installed policy does not contain the expected helper path"
-    }
 }
 
 install_release() {
@@ -148,8 +130,6 @@ install_release() {
     command -v sudo >/dev/null 2>&1 || fail "sudo is required for a system installation"
     printf 'Installing the verified release under /usr; sudo may request authentication.\n'
     sudo install -Dm755 "$staged_application" "$installed_application"
-    sudo install -Dm755 "$staged_helper" "$installed_helper"
-    sudo install -Dm644 "$staged_policy" "$installed_policy"
     verify_system_install
     printf 'System installation verified.\n'
 }

@@ -17,8 +17,17 @@ Classify every new responsibility before writing code:
 - Put visual rules in `ui/sass/`; Rust may only toggle semantic state classes.
 - Put template binding, signal/action wiring, window lifecycle, and rendering
   of core results in `src/ui/`.
-- Put models, validation, D-Bus, GECOS, helper communication, filesystem work,
-  image transformation, and camera capture in `src/core/`.
+- When one window owns several distinct UI flows, keep its GTK subclass and
+  lifecycle wiring in the window module root and group each flow in a named
+  child module. Extend the same window type across those modules; do not add
+  controller structs solely to make files smaller.
+- Connect GTK signals through their generated typed `connect_*` methods. When
+  a handler must not retain a window or widget, prefer
+  `glib::clone!(#[weak] object, ...)` over repeated manual downgrade/upgrade
+  blocks or project-specific signal-connection helpers.
+- Put models, validation, AccountsService/D-Bus communication, current-user
+  lookup, filesystem work, image transformation, and camera capture in
+  `src/core/`.
 
 Dependency direction is `ui -> core`. Core APIs return plain Rust values and
 typed errors; they must not expose or import GTK/GDK types. If a responsibility
@@ -33,8 +42,9 @@ it in a catch-all helper module.
   object lifetime explicit.
 - Let the UI represent loading, partial success, cancellation, and recoverable
   errors without duplicating core policy.
-- Preserve unedited system data, especially hidden GECOS fields, at every write
-  boundary.
+- Keep each write within the current display-name/avatar contract. Do not add
+  direct account-file writes, a privileged helper, or a project Polkit policy
+  without an explicit architecture and scope revision.
 - Update `.ui`, SCSS, GResource/build inputs, packaging metadata, and tests when
   the feature touches them.
 

@@ -9,7 +9,6 @@ target_dir=$3
 profile=$4
 camera=$5
 application_output=$6
-helper_output=$7
 
 set -- "$cargo" build \
   --manifest-path "$source_root/Cargo.toml" \
@@ -37,4 +36,3 @@ esac
 
 "$@"
 cp "$artifact_dir/xfce4-profile-editor" "$application_output"
-cp "$artifact_dir/xfce4-profile-editor-helper" "$helper_output"

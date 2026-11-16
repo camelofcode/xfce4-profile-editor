@@ -34,7 +34,6 @@ jobs:
             libclang-dev \
             libgtk-4-dev \
             libv4l-dev \
-            libxml2-utils \
             meson \
             ninja-build \
             pkg-config \
@@ -76,13 +75,12 @@ jobs:
           cargo clippy --locked --workspace --all-targets --no-default-features -- -D warnings
           xvfb-run --auto-servernum cargo test --locked --workspace --no-default-features
 
-      - name: Validate resources, policy, and translations
+      - name: Validate resources and translations
         env:
           GTK_A11Y: none
         run: |
           xvfb-run --auto-servernum gtk4-builder-tool validate ui/windows/profile-window.ui
           xvfb-run --auto-servernum gtk4-builder-tool validate ui/windows/camera-window.ui
-          xmllint --noout data/polkit/io.github.camelofcode.Xfce4ProfileEditor.policy.in
           msgfmt --check --check-accelerators=_ -o /tmp/xfce4-profile-editor.mo po/xfce4-profile-editor.pot
 
       - name: Verify Meson builds and staged installation

@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-po/polkit-messages.rs
 ui/windows/profile-window.ui
 ui/windows/camera-window.ui
-src/ui/windows/profile_window.rs
-src/ui/windows/camera_window.rs
+src/ui/windows/profile_window/avatar.rs
+src/ui/windows/profile_window/display_name.rs
+src/ui/windows/profile_window/loading.rs
+src/ui/windows/profile_window/status.rs
+src/ui/windows/camera_window/capture.rs
+src/ui/windows/camera_window/mod.rs

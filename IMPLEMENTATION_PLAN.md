@@ -1,10 +1,13 @@
+<!-- SPDX-License-Identifier: GPL-2.0-or-later -->
+
 # Xfce Profile Editor Implementation Plan
 
 ## 1. Purpose
 
-Build a small, maintainable Rust/GTK 4 application that replaces the useful
-system-profile parts of Mugshot for Xfce. It must work as the command launched
-by Whisker Menu's **Edit Profile** action without depending on Mugshot.
+Build a small Rust/GTK 4 application for the command launched by Whisker
+Menu's **Edit Profile** action. The application edits exactly the two values
+shown in Whisker Menu's profile header: the current user's display name and
+profile image.
 
 Working identifiers:
 
@@ -12,82 +15,83 @@ Working identifiers:
 - executable: `xfce4-profile-editor`
 - window title: `Profile`
 - application ID: `io.github.camelofcode.Xfce4ProfileEditor`
-- licence: GNU General Public License version 2 or later
-  (`GPL-2.0-or-later`)
+- licence: `GPL-2.0-or-later`
 
 The project is initially an independent proposal, not an official Xfce
-component. A reverse-DNS application ID will be chosen after the hosting and
-project namespace is finalised.
+component. The first useful release should remain deliberately small so it can
+be presented to the Xfce team for feedback before broader account-management
+features are considered.
 
 ## 2. Scope
 
 ### In scope
 
+- Display the current user's real/display name.
+- Update the display name through AccountsService `SetRealName`.
 - Display the current profile image as a circular image.
-- Select a profile image from disk.
+- Select, normalise, and remove a profile image.
 - Take a profile image using an available webcam.
-- Update `~/.face` and the current user's AccountsService icon.
-- Edit first name and last name as the GECOS full-name value.
-- Edit office and home phone numbers in their standard GECOS fields.
-- Edit the email address exposed by AccountsService.
-- Provide a buttonless edit flow, with Help and Close buttons rather than Save
-  and Cancel.
+- Keep `~/.face` and AccountsService `IconFile` in sync.
+- Provide a buttonless edit flow with a Close button rather than Save and
+  Cancel.
 - Work under X11 and Wayland in an Xfce session.
 
 ### Out of scope
 
-- Initials and fax fields, because they have no relevant standard system store.
-- LibreOffice, Pidgin, or other application-specific synchronisation.
+- Office phone, home phone, email, initials, fax, and other personal details.
 - Editing another user's account.
 - Password, login name, shell, groups, account type, or automatic-login
   management.
+- Direct `/etc/passwd` or GECOS persistence.
+- A project-owned privileged helper or Polkit policy.
+- LibreOffice, Pidgin, or other application-specific synchronisation.
 - Stock avatar galleries in the first release.
 - A compatibility executable named `mugshot`, which could conflict with the
   existing package.
 
+The broader pre-simplification implementation remains available in the Git tag
+`archive/full-profile-fields-2026-11-15` if later Xfce feedback justifies
+revisiting any removed feature.
+
 ## 3. Data ownership
 
-There must be one authoritative store for each editable value.
+There is one authoritative system interface for each editable value.
 
-| UI value | Authoritative storage | Notes |
+| UI value | Authoritative storage/interface | Notes |
 | --- | --- | --- |
-| Profile image | `~/.face` and AccountsService `IconFile` | Keep both consumers in sync. |
-| First and last name | GECOS full-name field | Combine for storage and split for display. |
-| Office phone | GECOS office-phone field | Preserve every other GECOS field. |
-| Home phone | GECOS home-phone field | Preserve every other GECOS field. |
-| Email address | AccountsService `Email` | Do not encode it into GECOS. |
+| Display name | AccountsService `RealName` / `SetRealName` | Editing is disabled when AccountsService is unavailable. |
+| Profile image | `~/.face` and AccountsService `IconFile` | Keep both Whisker-facing consumers in sync. |
 
-The standard GECOS sequence is full name, room, office phone, home phone, and
-other. The application does not expose room or other, but every read-modify-write
-operation must preserve them exactly.
+AccountsService is distribution-provided and may apply its own Polkit policy.
+The application requests interactive authorization for writes but does not
+ship a policy, invoke `pkexec`, collect a password, or promise that every
+distribution will authorize a write without a system prompt.
+
+`SetRealName` delegates the legacy GECOS representation to AccountsService.
+The application does not expose or manage legacy room/phone/other fields. This
+is a deliberate scope tradeoff in favour of the standard desktop account API
+used by comparable account-details tools.
 
 No application-specific GSettings profile store is needed.
 
 ## 4. Toolkit and dependencies
 
-- Rust, using the stable toolchain supported by the selected `gtk4-rs` release.
+- Rust using the stable toolchain supported by the selected `gtk4-rs` release.
 - GTK 4.10 or newer.
-- Raw `gtk4-rs` composite templates rather than Relm4, so layout remains in
-  `.ui` resources.
-- Meson is the supported project build and installation entry point. It drives
-  Cargo for Rust compilation and provides the native packaging and gettext
-  integration expected by the GTK ecosystem.
-- GResource for UI templates, compiled CSS, icons, and other static assets.
-- SCSS for the small amount of styling needed for the avatar and status states.
-- GNU gettext for every user-visible string from the start: GtkBuilder strings
-  use `translatable="yes"`, Rust presentation strings use `gettext-rs`, and
-  system-owned Polkit prompts declare the same text domain.
-- A D-Bus client suitable for keeping AccountsService access outside the GTK
-  layer.
-- `nokhwa` with the native Linux backend for webcam discovery and capture,
-  isolated behind a Cargo feature.
-- A non-GTK image library for orientation, square cropping, resizing, and PNG
-  encoding.
+- Resource-backed `gtk4-rs` composite templates rather than Relm4.
+- Meson as the supported build/install entry point; Cargo remains the Rust
+  compiler and workspace test runner.
+- GResource for UI templates, compiled CSS, and static assets.
+- SCSS for the small amount of avatar and status styling.
+- GNU gettext for every user-visible string.
+- `zbus` for GTK-independent AccountsService access.
+- `nokhwa` with the native Linux backend for optional webcam capture.
+- `image` for bounded orientation, square cropping, resizing, and PNG encoding.
 
-Cargo remains the Rust compiler and workspace/test runner. `build.rs` compiles
-the embedded SCSS and GResources for both Cargo and Meson builds, while Meson
-owns supported build profiles, installation paths, policy rendering, and
-translation catalogs. There must not be a second Make-based install path.
+`scripts/build-install-launch.sh` is the authoritative developer entry point
+for application builds, staging, installation, and launching. Direct Cargo
+commands are reserved for formatting, linting, and tests and reuse the same
+Cargo home and workspace `target/` cache. There is no parallel Makefile path.
 
 ## 5. Repository layout
 
@@ -95,411 +99,274 @@ translation catalogs. There must not be a second Make-based install path.
 .
 ├── AGENTS.md
 ├── Cargo.toml
-├── CONTRIBUTING.md
-├── COPYRIGHT
+├── IMPLEMENTATION_PLAN.md
+├── PROGRESS.md
 ├── build.rs
 ├── meson.build
 ├── meson_options.txt
 ├── resources.gresource.xml
-├── crates/
-│   ├── profile-data/
-│   │   └── src/lib.rs
-│   └── profile-helper/
-│       ├── Cargo.toml
-│       └── src/
-│           ├── lib.rs
-│           └── main.rs
-├── data/
-│   ├── meson.build
-│   ├── icons/
-│   ├── polkit/
-│   ├── xfce4-profile-editor.desktop.in
-│   └── xfce4-profile-editor.metainfo.xml.in
+├── docs/
 ├── po/
-│   ├── LINGUAS
-│   ├── POTFILES.in
-│   ├── meson.build
-│   └── xfce4-profile-editor.pot
 ├── scripts/
 │   ├── build-install-launch.sh
 │   └── cargo-build.sh
 ├── src/
-│   ├── config.rs
-│   ├── i18n.rs
-│   ├── meson.build
-│   ├── main.rs
 │   ├── core/
-│   │   ├── account_service.rs
-│   │   ├── camera.rs
-│   │   ├── email_persistence.rs
-│   │   ├── gecos.rs
-│   │   ├── gecos_helper.rs
-│   │   ├── gecos_persistence.rs
-│   │   ├── image.rs
-│   │   ├── profile.rs
-│   │   ├── profile_persistence.rs
-│   │   └── profile_store.rs
+│   │   ├── camera/
+│   │   │   ├── capture.rs
+│   │   │   ├── device.rs
+│   │   │   ├── frame.rs
+│   │   │   └── mod.rs
+│   │   ├── profile/
+│   │   │   ├── accounts.rs
+│   │   │   ├── avatar_persistence.rs
+│   │   │   ├── current_user_lookup.rs
+│   │   │   ├── display_name.rs
+│   │   │   ├── image.rs
+│   │   │   ├── loader.rs
+│   │   │   ├── models/
+│   │   │   │   ├── account_details.rs
+│   │   │   │   ├── avatar.rs
+│   │   │   │   ├── avatar_save_outcome.rs
+│   │   │   │   ├── current_user.rs
+│   │   │   │   ├── display_name_save_outcome.rs
+│   │   │   │   ├── load_warning.rs
+│   │   │   │   ├── loaded_profile.rs
+│   │   │   │   └── mod.rs
+│   │   │   └── mod.rs
+│   │   └── mod.rs
 │   └── ui/
-│       ├── mod.rs
 │       └── windows/
-│           ├── camera_window.rs
-│           └── profile_window.rs
-├── ui/
-│   ├── sass/
-│   │   ├── _camera-window.scss
-│   │   ├── _profile-window.scss
-│   │   └── app.scss
-│   └── windows/
-│       ├── camera-window.ui
-│       └── profile-window.ui
-└── tests/
+│           ├── camera_window/
+│           │   ├── capture.rs
+│           │   ├── mod.rs
+│           │   └── preview.rs
+│           └── profile_window/
+│               ├── avatar.rs
+│               ├── camera.rs
+│               ├── display_name.rs
+│               ├── loading.rs
+│               ├── mod.rs
+│               └── status.rs
+└── ui/
+    ├── sass/
+    └── windows/
+        ├── camera-window.ui
+        └── profile-window.ui
 ```
 
-The `ui/` and `src/ui/` directories mirror one another. Static widget
-hierarchy, spacing, labels, accessibility relationships, menus, and actions
-belong in `.ui` files. Rust UI modules bind template children, connect signals,
-translate core results into presentation state, and manage window lifecycles.
-All system interaction and data transformation belongs in `src/core/`.
-Lossless GECOS data rules shared across the privilege boundary belong in
-`crates/profile-data/`; the GTK-free privileged boundary belongs in
-`crates/profile-helper/`.
+Static hierarchy, spacing, labels, accessibility relationships, and widget
+properties belong in `ui/`. Styling belongs in `ui/sass/`. GTK signal wiring,
+window lifecycle, and presentation state belong in `src/ui/`. AccountsService,
+current-process identity, image transformation, camera capture, validation,
+and persistence belong in `src/core/`.
 
-Dependency direction is always `ui -> core`. Core modules must not import GTK
-or GDK types and must expose plain Rust data and typed errors.
+Core code is grouped by product domain rather than technical layer. The
+`profile` domain keeps its data and AccountsService/filesystem behaviour
+together; the `camera` domain owns device discovery, frame capture, and its
+worker lifecycle. The larger profile domain groups its independent production
+data carriers under `profile/models/`, one named file per value; stateful
+resources, persistence operations, and their tightly coupled errors stay in
+behaviour-focused modules.
+`src/core/mod.rs` is the single façade consumed by the UI.
 
-## 6. Core model and services
+Dependency direction is always `src/ui/ -> src/core/`. Core APIs use plain
+Rust values and typed errors and must not import GTK or GDK.
 
-The main model should remain small:
+Each window remains one GTK subclass. Its module root owns template binding,
+signal connections, lifecycle hooks, and construction. Named profile-window
+modules contain the loading, display-name, avatar, camera, and status flows;
+named camera-window modules separate capture-worker coordination from frame
+preview interactions. These are source-navigation boundaries, not additional
+controller objects.
+
+## 6. Core loading
+
+The load result remains small:
 
 ```rust
-struct Profile {
-    first_name: String,
-    last_name: String,
-    home_phone: String,
-    email: String,
-    office_phone: String,
-    avatar: Option<Avatar>,
+struct LoadedProfile {
+    display_name: String,
+    avatars: Vec<Avatar>,
+    warnings: Vec<LoadWarning>,
+    display_name_state: Option<DisplayNameState>,
 }
 ```
 
-`ProfileStore` coordinates independent services but does not hide which store
-failed. Partial failure must be representable so the UI can show that, for
-example, the local image was saved but AccountsService could not be updated.
+Loading runs outside the GTK main thread:
 
-### Loading
+1. Resolve the effective UID from the kernel and the home directory from the
+   desktop session's absolute `HOME` value.
+2. Read AccountsService `RealName` and `IconFile`.
+3. Keep name editing disabled and report a recoverable warning if
+   AccountsService is unavailable; do not parse passwd/GECOS as a fallback.
+4. Prefer a valid `~/.face`, then a valid AccountsService icon, then the themed
+   default avatar.
+5. Report degraded AccountsService and unreadable-image states as recoverable
+   warnings.
 
-1. Resolve the current UID and account through NSS-safe APIs.
-2. Parse GECOS into a lossless representation, retaining empty and unexposed
-   fields.
-3. Read AccountsService `Email` and `IconFile` when available.
-4. Prefer a valid `~/.face` for display, then a valid AccountsService icon,
-   then the themed default avatar.
+Display names are trimmed before comparison and saving. AccountsService owns
+the accepted-value policy and reports unsupported values as recoverable write
+errors; the application does not impose passwd/GECOS formatting rules.
 
-### Validation
+## 7. Main window and save flow
 
-- Trim accidental surrounding whitespace without changing meaningful internal
-  spacing.
-- Reject GECOS delimiters, colons, newlines, and NUL characters before invoking
-  privileged code.
-- Apply conservative phone validation that permits common international phone
-  formatting rather than silently deleting characters.
-- Allow an empty value to clear any editable field.
-
-## 7. Privileged GECOS updates
-
-The Phase 3 compatibility and security decision is recorded in
-[`docs/phase-3-gecos-persistence-spike.md`](docs/phase-3-gecos-persistence-spike.md).
-It selects a narrowly scoped `pkexec` helper using the system `usermod`
-primitive and rejects AccountsService `SetRealName` and `chfn` because they do
-not preserve every GECOS field representation required by this project.
-
-The GTK process must never edit `/etc/passwd`, collect a password, invoke a
-shell, or interpolate user values into a command string.
-
-Before the form is implemented, build a focused compatibility and security
-spike which proves a safe update path on Fedora. The preferred design is a
-small installed helper with a narrowly scoped Polkit action:
-
-- it derives the target account from the authenticated caller and cannot name
-  an arbitrary target user;
-- it accepts only the three supported GECOS values;
-- it validates all input again at the privilege boundary;
-- it preserves the room and other GECOS fields;
-- it uses the distribution account-management primitive without a shell;
-- it returns structured success, cancellation, denial, validation, and system
-  errors;
-- it refuses non-local accounts rather than pretending to update them.
-
-The spike must also evaluate the current AccountsService `SetRealName`
-behaviour. It may be used only if tests prove that it preserves the other GECOS
-subfields on every supported target. Do not maintain a second real-name copy or
-perform two competing writes.
-
-The exact helper protocol and Polkit policy are not considered final until they
-have received a dedicated security review.
-
-## 8. Main window
-
-Use a resizable `GtkApplicationWindow` containing a `GtkScrolledWindow` so it
-remains usable on small screens.
-
-The `.ui` template contains:
+Use a compact, fixed-size `GtkApplicationWindow` containing a
+`GtkScrolledWindow`. The fixed 460×360 default comfortably contains the avatar,
+single field, status message, and footer while the scroller protects the flow
+on constrained displays and with longer translations.
 
 ```text
              (circular profile image)
 
-First Name       [                              ]
-Last Name        [                              ]
-Home Phone       [                              ]
-Email Address    [                              ]
-Office Phone     [                              ]
+Display name:  [                              ]
 
-[ Help ]                                      [ Close ]
+                                             [ Close ]
 ```
 
-Activating the image opens a popover with Choose Photo, Take Photo, and Remove
-Photo. Take Photo is disabled or hidden when camera support is not compiled or
-no camera is available.
+Activating the image opens a popover with Choose photo, Take photo, and Remove
+photo. Take photo is hidden when camera support is unavailable.
 
-There is no Save or Cancel button. Editing follows a single form-transaction
-model so a privileged GECOS write does not request elevation for every field:
+There is no Save or Cancel button:
 
-- mark text fields dirty while typing;
-- validate after a short idle debounce and on focus loss;
-- use Enter to advance through the form without writing;
-- coalesce all related GECOS changes into one privileged operation when the
-  user closes the form;
-- show Saving, Saved, and error states without blocking the main loop;
-- on Close, flush pending valid changes and wait for active writes;
-- keep the window open when a write fails so the user can retry or explicitly
-  discard the unsaved edit.
+- mark the display name dirty while typing;
+- show a concise unsaved state after a short idle debounce or focus loss,
+  without writing on every keystroke or blur;
+- save once through AccountsService when the window closes;
+- keep the window open and retain the edit if the write fails;
+- keep all D-Bus and image work off the GTK main thread.
 
-## 9. Profile images
+Image selection and removal persist immediately because they are explicit
+actions, not ambiguous form edits.
+
+## 8. Profile images
 
 Image processing runs outside the GTK main thread:
 
-1. Open an asynchronous GTK file dialog filtered to supported image MIME types.
-2. Decode the selected image with bounded dimensions.
+1. Open GTK's asynchronous file dialog filtered to supported image types.
+2. Decode with bounded input, dimension, and allocation limits.
 3. Apply embedded orientation.
 4. Centre-crop to a square and resize to 512 by 512 pixels.
 5. Encode a normalised PNG.
-6. Write beside `~/.face`, set appropriate permissions, and atomically rename
-   it into place.
-7. Call AccountsService `SetIconFile` using the stable `~/.face` path with
+6. Write beside `~/.face`, set mode `0644`, synchronise, and atomically rename.
+7. Call AccountsService `SetIconFile` with the stable `~/.face` path and
    interactive authorization enabled.
-8. Update the preview and Whisker-visible state only from the confirmed result.
+8. Update the preview only from the confirmed result and report partial
+   AccountsService failure explicitly.
 
-Do not pass a private temporary path to AccountsService. Removing a photo must
-have equally explicit behaviour and tests for both storage locations.
+## 9. Webcam window
 
-## 10. Webcam window
+Camera support remains a separate core service and `.ui`-defined window.
 
-Camera support is a separate core service and a second `.ui`-defined window.
+- Enumerate devices rather than assuming `/dev/video0`.
+- Open and capture on worker threads.
+- Use a bounded latest-frame channel.
+- Offer Capture, Retake, Use photo, and Cancel states.
+- Feed accepted frames through the same normalisation and persistence path.
+- Release the device on every exit path.
+- Treat unavailable, busy, denied, unsupported, and unplugged devices as
+  recoverable errors.
 
-- Enumerate devices instead of assuming `/dev/video0`.
-- Open capture on a worker thread.
-- Use a bounded latest-frame channel so the camera cannot queue unbounded work.
-- Convert only the displayed frame to a GTK texture in the UI layer.
-- Offer Capture, Retake, Use Photo, and Cancel states.
-- Feed an accepted frame through the same normalisation and save pipeline used
-  for files.
-- Stop capture and release the device when the window closes, the application
-  exits, or an error occurs.
-- Handle permission denial, unplugging, unsupported formats, and a busy camera
-  as normal errors.
+## 10. Implementation phases
 
-## 11. Implementation phases
+### Phase 1: project foundation — complete
 
-### Phase 1: project foundation
+Cargo/Meson, GTK resources, SCSS, the main window, formatting, linting, tests,
+and resource validation are established.
 
-- Create the Cargo package and module tree.
-- Compile and register `.ui`, SCSS, and icon resources.
-- Create an empty composite-template main window.
-- Add rustfmt, Clippy, unit-test, and resource-validation commands.
+### Phase 2: profile reads — complete
 
-Completion: a clean build opens and closes the resource-backed main window
-without GTK warnings.
+Current-user resolution, AccountsService reads, avatar fallback, asynchronous
+loading, warnings, and the read-only UI are established.
 
-### Phase 2: profile reads
+### Phase 3: display-name persistence — current simplification checkpoint
 
-- Implement the profile model and lossless GECOS parser.
-- Add current-user resolution and AccountsService reads.
-- Populate a read-only version of the form and avatar fallback chain.
+- Replace first/last name, phone, and email editing with one display-name field.
+- Write through AccountsService `SetRealName` only.
+- Remove the helper, shared GECOS crate, helper crate, JSON protocol, project
+  Polkit policy, and their package artifacts.
+- Retain normalization, dirty-state, close-time save, and recoverable errors.
 
-Completion: values match `getent passwd` and AccountsService on a test machine,
-including accounts with short or partially empty GECOS data.
+Completion: the installed application changes the Whisker-visible display name
+and requires no project-owned privileged component.
 
-### Phase 3: safe persistence
+### Phase 4: image selection — complete
 
-- Complete the Polkit/helper spike and document the decision.
-- Implement name and phone writes with preservation tests.
-- Implement AccountsService email writes.
-- Add dirty-state, commit, error, and close-flush behaviour.
+Bounded normalisation, asynchronous file selection, atomic `~/.face` writes,
+AccountsService updates, preview, and removal are implemented.
 
-Completion: each field can be changed and cleared; room and other GECOS values
-remain byte-for-byte unchanged; denied authentication loses no edit.
+### Phase 5: camera capture — complete for primary hardware
 
-### Phase 4: image selection
-
-- Implement image validation and normalisation.
-- Add the file dialog and circular preview.
-- Implement atomic `~/.face` and AccountsService updates.
-- Add removal behaviour.
-
-Completion: Whisker Menu and the application show the new image after a
-successful update, including after logout and login.
-
-### Phase 5: camera capture
-
-- Add device discovery and availability state.
-- Implement the camera window and frame pipeline.
-- Reuse the Phase 4 image-save path.
-
-Completion: capture works with a default webcam, cleanly handles no camera, and
-releases the device on every exit path.
+Discovery, capture window, bounded frame pipeline, and avatar-save integration
+are implemented and have passed primary camera-equipped hardware acceptance.
+Busy, denied, and unplugged-device resilience checks remain desirable.
 
 ### Phase 6: desktop integration and packaging
 
-- Add the desktop file, application icon, AppStream metadata, help, initial
-  translation catalogs, and translator documentation. The Meson/gettext
-  infrastructure and message marking are established in earlier phases.
-- Package the helper and Polkit policy with safe ownership and permissions.
-- Document setting Whisker Menu's Edit Profile command to
+- Finalise desktop file, icon, AppStream metadata, translation catalogs, and
+  translator documentation.
+- Document configuring Whisker Menu's Edit Profile command as
   `xfce4-profile-editor`.
-- Add Fedora build and installation instructions.
+- Add Fedora build/install instructions and prepare portable distro packaging
+  guidance.
 
-Completion: a clean package install appears in the application menu, launches
-from Whisker, and passes metadata validation.
+Completion: a clean package install appears where appropriate, launches from
+Whisker, updates the displayed name/avatar, and passes metadata validation.
 
 ### Phase 7: CI and release automation
 
-Add GitHub Actions only after the local build and test commands are stable, so
-CI executes established project checks rather than becoming a second build
-system.
+Keep one cost-conscious Linux validation job, cancel superseded runs, avoid
+scheduled and matrix jobs initially, use read-only token permissions, and
+retain temporary artifacts for no more than seven days. A tag-triggered
+release job may request `contents: write`, but it must create a draft release
+for manual verification and must never publish directly.
 
-While the repository is private, keep the workflow deliberately economical:
+## 11. Verification
 
-- run on pull requests, pushes to `main`, and explicit manual dispatches;
-- use one standard Linux runner and one combined validation job rather than a
-  distribution or toolchain matrix;
-- run formatting, Clippy, tests, resource validation, and the supported
-  headless GTK checks;
-- cache Cargo downloads and appropriate build output with a bounded cache key;
-- cancel an older in-progress run when a newer commit arrives on the same
-  branch;
-- do not add scheduled, nightly, coverage, or multi-distribution jobs until the
-  repository is public or there is a demonstrated need;
-- upload artifacts only for manual package/release runs or when an artifact is
-  necessary to diagnose a failure, and retain temporary artifacts for no more
-  than seven days;
-- use read-only `GITHUB_TOKEN` permissions by default and grant
-  `contents: write` only to the release job;
-- pin every third-party action to a reviewed full commit SHA.
+Automated coverage includes:
 
-Before enabling CI, set the repository's Actions spending limit to zero or
-otherwise ensure jobs stop when the included private-repository allowance is
-exhausted. Review actual runner usage after the first month rather than
-assuming the initial workflow is cheap enough.
+- AccountsService-backed display-name state and fake-client persistence;
+- current-process UID/home resolution and degraded AccountsService handling;
+- image orientation, crop, resize, size limits, atomic write, and removal;
+- resource loading and display-backed window lifecycle;
+- camera discovery and fake-frame capture paths;
+- Meson build and staged installation containing only the application binary.
 
-Create a separate release workflow with this lifecycle:
-
-1. A maintainer updates the version and release notes and runs all checks
-   locally.
-2. A signed annotated tag named `vMAJOR.MINOR.PATCH` is pushed.
-3. The tag workflow verifies that the tag matches the package version and that
-   the commit passes the complete validation suite.
-4. It builds the agreed source archive and supported package artifacts, then
-   generates SHA-256 checksums.
-5. It creates a **draft** GitHub Release using the repository's `GITHUB_TOKEN`
-   and attaches the verified artifacts and generated release notes.
-6. A maintainer downloads or installs the artifacts, checks the draft, and
-   publishes it manually.
-
-Do not put long-lived signing keys in Actions for the initial release process.
-If signed packages become necessary, design that key-management path
-separately. Exercise the release workflow through a non-publishing manual dry
-run before creating `v0.1.0`.
-
-When the repository becomes public, standard GitHub-hosted runners no longer
-consume the private-repository compute allowance. At that point, consider a
-supported-distribution matrix, scheduled dependency/security checks, coverage,
-and longer-lived useful artifacts; do not enable them automatically merely
-because they are free.
-
-Completion: ordinary CI is fast, cancellable, least-privileged, and remains
-within the configured zero-spend policy; a version tag can reproducibly create
-a reviewed draft release without publishing it automatically.
-
-## 12. Verification
-
-### Automated tests
-
-- Lossless GECOS parse/serialise tests, including missing and extra fields.
-- Tests proving room and other are preserved across every supported update.
-- Name and phone validation tests, including malicious delimiter input.
-- Name split/join round trips for single and multi-part names.
-- AccountsService tests against a fake D-Bus service.
-- Image orientation, crop, resize, size-limit, and atomic-write tests.
-- Helper tests against disposable account fixtures only; tests must never alter
-  the developer's real account.
-- Resource-load and window-lifecycle tests under a display or supported
-  headless backend.
-- Camera-service tests with a fake frame source.
-- Workflow tests or dry runs proving that CI uses the same commands documented
-  for local development and that the release path cannot publish from an
-  unverified commit.
-
-### Required checks for each feature
+Required checks before committing a checkpoint:
 
 ```text
-cargo fmt --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test --all-features
-meson setup target/meson-build
-meson compile -C target/meson-build
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+GSK_RENDERER=cairo G_DEBUG=fatal-warnings cargo test --workspace --all-features
+gtk4-builder-tool validate ui/windows/profile-window.ui
+gtk4-builder-tool validate ui/windows/camera-window.ui
 meson compile -C target/meson-build xfce4-profile-editor-pot
+msgfmt --check --check-accelerators=_ po/xfce4-profile-editor.pot
+scripts/build-install-launch.sh stage
 ```
 
-UI changes also require loading the affected template and exercising the flow.
-Core changes require confirming that no GTK/GDK imports have crossed into
-`src/core/`.
+UI changes also require exercising the installed flow. Core changes require
+confirming that GTK/GDK imports have not crossed into `src/core/`.
 
-### Manual acceptance matrix
+Manual acceptance targets Fedora Xfce on X11 first, then Wayland when
+available, followed by other distributions based on contributor feedback.
+Test AccountsService present/degraded, image selection/removal, camera
+present/absent/busy/denied, light/dark themes, HiDPI, keyboard navigation, and
+small displays.
 
-- Fedora Xfce on X11.
-- Fedora Xfce on Wayland when available.
-- AccountsService present and absent/degraded.
-- Authentication accepted, cancelled, and denied.
-- Local account and detected non-local account.
-- Webcam present, absent, busy, denied, and unplugged during preview.
-- Light and dark GTK themes, HiDPI, keyboard-only navigation, and a small
-  display.
-- A release-candidate installation from the exact artifacts attached to the
-  draft GitHub Release.
-
-## 13. Early decisions still required
-
-These decisions should be made before the relevant implementation phase, not
-guessed during scaffolding:
+## 12. Early decisions still required
 
 - supported distribution/version matrix beyond Fedora;
-- naming changes required by a future Xfce contribution.
+- naming or application-ID changes requested by an Xfce contribution review;
+- whether any post-v1 account feature is justified by upstream feedback.
 
-## 14. Primary references
+## 13. Primary references
 
-- AccountsService D-Bus API:
-  <https://www.freedesktop.org/software/accountsservice/>
+- AccountsService: <https://www.freedesktop.org/software/accountsservice/>
 - GTK Rust composite templates:
   <https://gtk-rs.org/gtk4-rs/stable/latest/book/composite_templates.html>
 - GTK Rust internationalisation and Meson integration:
   <https://gtk-rs.org/gtk4-rs/stable/latest/book/i18n.html>
-- Nokhwa camera library:
-  <https://github.com/l1npengtul/nokhwa>
-- Existing Mugshot implementation for behavioural comparison only:
-  <https://github.com/bluesabre/mugshot>
-- GitHub Actions billing and included usage:
-  <https://docs.github.com/en/billing/concepts/product-billing/github-actions>
-- GitHub Actions budgets and hard usage stops:
-  <https://docs.github.com/en/billing/how-tos/set-up-budgets>
-- GitHub release management:
-  <https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository>
+- Nokhwa camera library: <https://github.com/l1npengtul/nokhwa>
+- Mugshot behavioural reference: <https://github.com/bluesabre/mugshot>
+- Whisker Menu: <https://docs.xfce.org/panel-plugins/xfce4-whiskermenu-plugin/start>

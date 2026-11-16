@@ -12,7 +12,7 @@ cargo_environment.set('LOCALEDIR', localedir)
 
 custom_target(
   'cargo-build',
-  output: [meson.project_name(), meson.project_name() + '-helper'],
+  output: meson.project_name(),
   command: [
     sh,
     cargo_build_script,
@@ -22,13 +22,12 @@ custom_target(
     get_option('profile'),
     camera_enabled,
     '@OUTPUT0@',
-    '@OUTPUT1@',
   ],
   env: cargo_environment,
   console: true,
   build_always_stale: true,
   build_by_default: true,
   install: true,
-  install_dir: [bindir, libexecdir],
+  install_dir: bindir,
   install_mode: 'rwxr-xr-x',
 )
