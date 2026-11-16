@@ -14,11 +14,11 @@ truth for current scope and architecture.
 - Archived full-field implementation tag:
   `archive/full-profile-fields-2026-11-15` (pushed to `origin`)
 - Current checkpoint: x86_64 release packages and draft-release automation —
-  implemented locally, pending the packaging workflow's pull-request run
-- Next checkpoint: download and inspect the workflow-built packages before
-  merging, then exercise a manual workflow run from `main`
-- Expected repository state after handoff: uncommitted topic branch awaiting
-  workflow validation
+  pull-request package construction and artifact upload pass
+- Next checkpoint: target-distribution installation acceptance before merging,
+  then exercise a manual workflow run from `main`
+- Expected repository state after handoff: committed topic branch pushed with
+  pull request #4 open against `main`
 
 ## Current checkpoint worktree
 
@@ -48,9 +48,11 @@ Focused verification completed:
 - formatting, Clippy, and tests pass for all features and for the
   camera-disabled configuration (35 and 24 unit tests respectively, plus the
   resource test in each configuration);
-- local package construction is unavailable on the Fedora development machine
-  because `dpkg-deb`, `dpkg-shlibdeps`, and `rpmbuild` are not installed; the
-  release workflow's pull-request run is the package-construction checkpoint.
+- the pull-request release workflow builds and inspects the `.deb`, `.rpm`, and
+  tar archive successfully, including declared GTK/AccountsService dependencies
+  and installed-file lists;
+- the seven-day workflow artifact downloads with all three packages and its
+  recorded SHA-256 checksums verify successfully.
 
 ## Completed phases
 
@@ -102,8 +104,8 @@ Focused verification completed:
 
 - Manual and tag-triggered release-package builds are implemented without a
   matrix or schedule.
-- Tag builds create a draft release only; workflow execution and artifact
-  inspection remain before this phase is complete.
+- Package construction and artifact inspection pass; the tag-only draft-release
+  path remains intentionally unexecuted until the first approved release tag.
 
 ## Build and workflow decisions
 
