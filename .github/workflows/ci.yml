@@ -28,8 +28,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes \
+            appstream \
             build-essential \
             clang \
+            desktop-file-utils \
             gettext \
             libclang-dev \
             libgtk-4-dev \
@@ -87,3 +89,5 @@ jobs:
         run: |
           scripts/build-install-launch.sh build
           scripts/build-install-launch.sh stage
+          desktop-file-validate target/staged-install/usr/share/applications/io.github.camelofcode.Xfce4ProfileEditor.desktop
+          appstreamcli validate --no-net target/staged-install/usr/share/metainfo/io.github.camelofcode.Xfce4ProfileEditor.metainfo.xml

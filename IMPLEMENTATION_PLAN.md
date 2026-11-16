@@ -102,6 +102,11 @@ Cargo home and workspace `target/` cache. There is no parallel Makefile path.
 ├── IMPLEMENTATION_PLAN.md
 ├── PROGRESS.md
 ├── build.rs
+├── data/
+│   ├── icons/
+│   ├── io.github.camelofcode.Xfce4ProfileEditor.desktop.in.in
+│   ├── io.github.camelofcode.Xfce4ProfileEditor.metainfo.xml
+│   └── meson.build
 ├── meson.build
 ├── meson_options.txt
 ├── resources.gresource.xml
@@ -301,12 +306,12 @@ Discovery, capture window, bounded frame pipeline, and avatar-save integration
 are implemented and have passed primary camera-equipped hardware acceptance.
 Busy, denied, and unplugged-device resilience checks remain desirable.
 
-### Phase 6: desktop integration and packaging
+### Phase 6: desktop integration and packaging — in progress
 
-- Finalise desktop file, icon, AppStream metadata, translation catalogs, and
-  translator documentation.
+- Install a translated **Profile Editor** launcher in Xfce's personal Settings
+  category, together with its scalable icon and translated AppStream metadata.
 - Document configuring Whisker Menu's Edit Profile command as
-  `xfce4-profile-editor`.
+  `xfce4-profile-editor` and validate the complete staged desktop layout.
 - Add Fedora build/install instructions and prepare portable distro packaging
   guidance.
 
@@ -330,7 +335,8 @@ Automated coverage includes:
 - image orientation, crop, resize, size limits, atomic write, and removal;
 - resource loading and display-backed window lifecycle;
 - camera discovery and fake-frame capture paths;
-- Meson build and staged installation containing only the application binary.
+- Meson build and staged installation containing the application binary,
+  desktop entry, scalable icon, and AppStream metadata.
 
 Required checks before committing a checkpoint:
 
