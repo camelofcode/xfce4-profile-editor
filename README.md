@@ -14,8 +14,10 @@ The repository is a functional work in progress focused on Whisker Menu's
 profile header. Display-name editing, profile-image selection/removal, and
 camera capture are implemented. The complete camera flow has been manually
 validated on a camera-equipped Cinnamon/X11 workstation, outside the Xfce
-desktop it is intended to integrate with. Remaining work is primarily desktop
-integration, packaging, interface polish, and additional resilience checks. See
+desktop it is intended to integrate with. A translated desktop launcher,
+application icon, and AppStream metadata are provided for Xfce integration.
+Remaining work is primarily packaging, interface polish, and additional
+resilience checks. See
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the agreed scope,
 architecture, implementation phases, and acceptance criteria. See
 [PROGRESS.md](PROGRESS.md) for the current implementation and handoff status.
@@ -74,17 +76,20 @@ scripts/build-install-launch.sh launch
 ```
 
 `build` and `stage` never request elevation. `install` stages and verifies the
-release first, then uses `sudo install` to copy the application; compilation
-and Meson metadata therefore remain unprivileged.
+release first, then uses `sudo meson install --no-rebuild` to install the
+already-built application and desktop metadata; compilation therefore remains
+unprivileged.
 `cycle` performs the explicit install followed by launch. The script adapts
 compiler parallelism to the current machine. Repository build scripts,
 including the Meson-to-Cargo driver, are kept together under `scripts/`.
 
-For normal desktop acceptance, run `scripts/build-install-launch.sh install`
-and then launch the editor through Xfce's configured profile action. This tests
-the authoritative `/usr/bin/xfce4-profile-editor` installation. Use `cycle`
-when an immediate launch is more convenient. Paths below `target/` are internal
-build and staging artifacts and are not part of the normal launch workflow.
+For normal desktop acceptance, run `scripts/build-install-launch.sh install`.
+The application then appears as **Profile Editor** in Xfce Settings and may be
+launched through Xfce's configured profile action. Set Whisker Menu's **Edit
+Profile** command to `xfce4-profile-editor`. This tests the authoritative
+`/usr/bin/xfce4-profile-editor` installation. Use `cycle` when an immediate
+launch is more convenient. Paths below `target/` are internal build and staging
+artifacts and are not part of the normal launch workflow.
 
 All script, Meson, lint, and test commands reuse Cargo's normal dependency
 sources and the workspace `target/` artifact cache. Do not assign a temporary

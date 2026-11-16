@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+[Desktop Entry]
+Name=Profile Editor
+Comment=Edit your display name and profile image
+Keywords=profile;avatar;user;name;photo;
+Exec=xfce4-profile-editor
+Icon=@APP_ID@
+Terminal=false
+Type=Application
+Categories=XFCE;GTK;Settings;DesktopSettings;X-XFCE-SettingsDialog;X-XFCE-PersonalSettings;
+OnlyShowIn=XFCE;
+StartupNotify=true

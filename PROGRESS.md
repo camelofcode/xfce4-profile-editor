@@ -9,83 +9,53 @@ truth for current scope and architecture.
 
 ## Current position
 
-- Active branch: `whisker-focused-profile`
-- Repository base: `5679c47` (merged public pull-request workflow)
+- Active branch: `phase-6-desktop-integration`
+- Repository base: `c7d973c` (merged Whisker-focused scope and readability
+  refactor)
 - Archived full-field implementation tag:
   `archive/full-profile-fields-2026-11-15` (pushed to `origin`)
-- Current checkpoint: Whisker-focused scope simplification and readability
-  refactor — pull request #2 open for review
-- Next checkpoint after merge: Phase 6 desktop integration and packaging
+- Current checkpoint: Phase 6 desktop integration — manually accepted with the
+  final gate passing; ready for a pull request
+- Next checkpoint: distro packaging guidance, then Phase 7 CI release
+  automation
 - Expected repository state after handoff: committed topic branch pushed with
   a pull request open against `main`
 
-## Approved current checkpoint
+## Current checkpoint worktree
 
-The product scope is now the two values presented by Whisker Menu's profile
-header: the current user's display name and profile image.
+Implemented:
 
-Implemented in the worktree:
+- added a translated **Profile Editor** desktop launcher in Xfce's personal
+  Settings category;
+- added an original scalable application icon and installed it through the
+  hicolor icon theme;
+- added translated AppStream metadata for software catalogues;
+- kept code, build files, the icon, and desktop entry under
+  `GPL-2.0-or-later`, with the AppStream metadata under `CC0-1.0` as required
+  for catalogue aggregation;
+- updated Meson installation and post-install cache refreshes;
+- expanded the authoritative build script to verify and install the complete
+  desktop layout without compiling as root;
+- added desktop-entry and AppStream validation to the single CI job;
+- updated README installation and Whisker configuration guidance.
 
-- replaced first name, last name, office phone, home phone, and email with one
-  **Display name** field;
-- changed name loading/writing to AccountsService `RealName`/`SetRealName`;
-- removed the remaining passwd/GECOS parser and display-name fallback;
-- reduced current-user resolution to the effective UID and the desktop
-  session's absolute home directory, which are the only values needed for
-  AccountsService and `~/.face`;
-- removed legacy GECOS character validation and delegated display-name policy
-  to AccountsService;
-- retained close-time dirty-state saving and recoverable write errors;
-- removed the shared GECOS crate, privileged-helper crate, helper client,
-  combined profile transaction, email persistence, JSON protocol, and project
-  Polkit policy;
-- reduced Meson packaging to the application binary;
-- removed the empty packaging-data scaffold and legacy helper/policy migration
-  path; staged installs are rebuilt from a clean generated destination;
-- removed the one-shot `ProfileStore` and `Profile` wrappers, the redundant
-  avatar-source variants, and an unused camera-description field;
-- replaced stateless current-user and AccountsService adapter structs with
-  plain functions, using closures only at the internal test seams;
-- added a required repository skill covering function-versus-struct choices,
-  trait use, typed enums, wrapper types, visibility, and structural review;
-- grouped core code into cohesive `profile` and `camera` domains, with camera
-  capture isolated from device discovery and `core/mod.rs` retained as the UI
-  façade;
-- separated independent production data carriers into named files under the
-  profile domain's `models` module (and alongside the smaller camera domain),
-  while retaining stateful resources and tightly coupled errors with behavior;
-- updated CI, translation inputs, repository guidance, plan, and packaging
-  documentation for the reduced architecture;
-- reduced the profile window from 560×600 to a fixed 460×360 and removed the
-  disabled Help button;
-- split the profile window's single large implementation into named loading,
-  display-name, avatar, camera, and status modules while retaining one GTK
-  subclass and keeping lifecycle wiring in the module root;
-- split the camera window into GTK lifecycle wiring, capture-worker
-  coordination, and frame-preview interaction modules without adding another
-  controller type;
-- preserved the prior implementation in the pushed archival tag above.
+Focused verification completed:
 
-The project no longer owns an elevation policy. AccountsService remains free
-to apply the distribution's policy and may show a system authentication prompt.
-`SetRealName` owns the legacy GECOS representation; room/phone/other fields are
-not part of the simplified application's contract.
-
-Verification completed:
-
-- authoritative Meson development build passes in responsive mode;
-- the changed GtkBuilder profile template validates (Mesa warnings only);
-- Clippy passes with warnings denied for all features and with camera support
-  disabled;
-- all-feature testing passes with 35 unit tests plus the embedded-resource
-  integration test, including the display-backed window flow;
-- camera-disabled testing passes with 24 unit tests plus the resource test;
-- gettext extraction and message validation pass with the reduced string set;
-- the release stage contains only `usr/bin/xfce4-profile-editor` at mode `0755`;
-- `src/core/` contains no GTK/GDK imports;
-- formatting and `git diff --check` pass;
-- the installed compact window, display-name save, and avatar flow were
-  manually approved through the configured Xfce Whisker profile action.
+- translated desktop and AppStream files generate successfully;
+- `desktop-file-validate` passes;
+- AppStream validation passes, with only the existing mixed-case application
+  ID reported as a pedantic preference;
+- gettext extraction includes desktop and AppStream strings;
+- the release stage contains the binary at `0755` plus desktop entry, icon,
+  and AppStream metadata at `0644`;
+- SVG/XML parsing and `git diff --check` pass;
+- the system installation appears as **Profile Editor** in Xfce Settings with
+  the expected icon and launches successfully;
+- formatting and Clippy pass with warnings denied for both all features and
+  the camera-disabled configuration;
+- all-feature testing passes with 35 unit tests plus the resource test, and
+  camera-disabled testing passes with 24 unit tests plus the resource test;
+- both GtkBuilder templates validate against the active desktop display.
 
 ## Completed phases
 
@@ -125,6 +95,13 @@ Verification completed:
 - Camera-equipped hardware acceptance passed on Cinnamon/X11.
 - Busy, denied, and unplugged-device resilience checks remain outstanding.
 
+### Phase 6 — desktop integration and packaging (in progress)
+
+- The Xfce Settings launcher, scalable icon, AppStream metadata, translation
+  extraction, staged layout checks, and CI metadata validation are implemented.
+- Xfce Settings installation and launch acceptance passed; portable distro
+  packaging guidance remains.
+
 ## Build and workflow decisions
 
 - `scripts/build-install-launch.sh` is the authoritative application build,
@@ -136,8 +113,8 @@ Verification completed:
   use their available resources.
 - On constrained hardware, use focused checks during iteration and run the
   full gate once after manual approval, immediately before commit.
-- Manual acceptance installs `/usr/bin/xfce4-profile-editor` and launches it
-  through the configured Whisker action.
+- Manual acceptance installs the binary and desktop metadata through Meson,
+  then checks both Xfce Settings and the configured Whisker action.
 - Protected `main` receives changes through pull requests after the single
   required **Build, test, and stage** job passes.
 

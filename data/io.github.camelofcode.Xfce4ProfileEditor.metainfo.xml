@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: CC0-1.0 -->
+<component type="desktop-application">
+  <id>io.github.camelofcode.Xfce4ProfileEditor</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-or-later</project_license>
+  <name>Profile Editor</name>
+  <summary>Edit your display name and profile image</summary>
+  <description>
+    <p>
+      Profile Editor manages the display name and profile image shown in the
+      Xfce Whisker Menu for the current user.
+    </p>
+    <p>
+      Choose an existing image, take a photo with a camera, or return to the
+      default profile image.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.camelofcode.Xfce4ProfileEditor.desktop</launchable>
+  <provides>
+    <binary>xfce4-profile-editor</binary>
+  </provides>
+  <developer id="io.github.camelofcode">
+    <name translate="no">Chris Clayton</name>
+  </developer>
+  <url type="homepage">https://github.com/camelofcode/xfce4-profile-editor</url>
+  <url type="bugtracker">https://github.com/camelofcode/xfce4-profile-editor/issues</url>
+  <translation type="gettext">xfce4-profile-editor</translation>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2026-11-16" type="development">
+      <description>
+        <p>Initial development release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

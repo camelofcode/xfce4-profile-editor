@@ -79,7 +79,9 @@ generic `helpers` or `utils` modules.
   GPL-2.0-or-later-compatible choice. Record any unusual, missing, or custom
   licence before proceeding.
 - Add `SPDX-License-Identifier: GPL-2.0-or-later` to new source, build, UI, and
-  metadata files using the comment syntax appropriate to that format.
+  metadata files using the comment syntax appropriate to that format. The one
+  exception is AppStream descriptive metadata, which uses `CC0-1.0` so Linux
+  distributions may combine it into their metadata catalogues as intended.
 - Preserve third-party copyright and licence notices, and document vendored or
   adapted material explicitly.
 

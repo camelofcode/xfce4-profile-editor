@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
+data/io.github.camelofcode.Xfce4ProfileEditor.desktop.in.in
+data/io.github.camelofcode.Xfce4ProfileEditor.metainfo.xml
 ui/windows/profile-window.ui
 ui/windows/camera-window.ui
 src/ui/windows/profile_window/avatar.rs
