@@ -60,6 +60,10 @@ resource scheduling, not which required checks are eventually run.
   for development builds, staged installs, explicit system installs, and
   launches. Keep system mutation behind its explicit `install` and `cycle`
   commands, and never compile as root.
+- `scripts/package-release.sh` consumes the already verified
+  `target/staged-install/` tree to create release artifacts. It must not invoke
+  Cargo or Meson, create another build cache, or package files outside that
+  staged layout.
 - Manual desktop acceptance normally uses the script's `install` command and
   launches `/usr/bin/xfce4-profile-editor` through the configured Xfce profile
   action. Treat paths below `target/` as internal artifacts; do not ask the user

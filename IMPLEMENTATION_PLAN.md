@@ -97,6 +97,10 @@ Cargo home and workspace `target/` cache. There is no parallel Makefile path.
 
 ```text
 .
+├── .github/
+│   └── workflows/
+│       ├── ci.yml
+│       └── release.yml
 ├── AGENTS.md
 ├── Cargo.toml
 ├── IMPLEMENTATION_PLAN.md
@@ -111,10 +115,15 @@ Cargo home and workspace `target/` cache. There is no parallel Makefile path.
 ├── meson_options.txt
 ├── resources.gresource.xml
 ├── docs/
+│   └── releasing.md
+├── packaging/
+│   ├── debian/
+│   └── rpm/
 ├── po/
 ├── scripts/
 │   ├── build-install-launch.sh
-│   └── cargo-build.sh
+│   ├── cargo-build.sh
+│   └── package-release.sh
 ├── src/
 │   ├── core/
 │   │   ├── camera/
@@ -325,6 +334,11 @@ scheduled and matrix jobs initially, use read-only token permissions, and
 retain temporary artifacts for no more than seven days. A tag-triggered
 release job may request `contents: write`, but it must create a draft release
 for manual verification and must never publish directly.
+
+The initial release build uses one Ubuntu runner and one verified Meson staging
+tree to produce x86_64 Debian, RPM, and compressed `/usr`-tree artifacts plus
+SHA-256 checksums. Manual workflow runs retain read-only test artifacts; only a
+matching `vMAJOR.MINOR.PATCH` tag on `main` starts the short draft-release job.
 
 ## 11. Verification
 

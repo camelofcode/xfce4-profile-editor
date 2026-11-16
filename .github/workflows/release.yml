@@ -1,0 +1,178 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - packaging/**
+      - scripts/package-release.sh
+      - scripts/build-install-launch.sh
+      - data/meson.build
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build release packages
+    if: ${{ github.event.repository.private == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    outputs:
+      artifact_name: ${{ steps.release.outputs.artifact_name }}
+      version: ${{ steps.release.outputs.version }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify a release tag belongs to main
+        if: ${{ github.ref_type == 'tag' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            appstream \
+            build-essential \
+            clang \
+            desktop-file-utils \
+            dpkg-dev \
+            gettext \
+            jq \
+            libclang-dev \
+            libgtk-4-dev \
+            libv4l-dev \
+            libxml2-utils \
+            meson \
+            ninja-build \
+            pkg-config \
+            python3-venv \
+            rpm \
+            sassc \
+            xz-utils
+
+      - name: Install the supported Meson version
+        run: |
+          python3 -m venv /tmp/meson-venv
+          /tmp/meson-venv/bin/pip install meson==1.12.0
+          echo "/tmp/meson-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Install the minimum supported Rust toolchain
+        run: |
+          rustup toolchain install 1.92.0 --profile minimal
+          rustup default 1.92.0
+
+      - name: Configure the release build
+        run: meson setup target/meson-release --prefix=/usr -Dprofile=release
+
+      - name: Verify release versions
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          project_version=$(meson introspect target/meson-release --projectinfo | jq -r .version)
+          cargo_version=$(cargo metadata --locked --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "xfce4-profile-editor") | .version')
+          appstream_version=$(xmllint --xpath 'string(/component/releases/release[1]/@version)' data/io.github.camelofcode.Xfce4ProfileEditor.metainfo.xml)
+          [[ "$project_version" == "$cargo_version" ]]
+          [[ "$project_version" == "$appstream_version" ]]
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            [[ "${GITHUB_REF_NAME#v}" == "$project_version" ]]
+          fi
+          echo "version=$project_version" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=xfce4-profile-editor-$project_version-linux-x86_64" >> "$GITHUB_OUTPUT"
+
+      - name: Build and stage the release
+        run: scripts/build-install-launch.sh stage
+
+      - name: Validate staged desktop integration
+        run: |
+          desktop-file-validate target/staged-install/usr/share/applications/io.github.camelofcode.Xfce4ProfileEditor.desktop
+          appstreamcli validate --no-net target/staged-install/usr/share/metainfo/io.github.camelofcode.Xfce4ProfileEditor.metainfo.xml
+          xmllint --noout target/staged-install/usr/share/icons/hicolor/scalable/apps/io.github.camelofcode.Xfce4ProfileEditor.svg
+
+      - name: Create release packages
+        run: |
+          SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)
+          export SOURCE_DATE_EPOCH
+          scripts/package-release.sh "${{ steps.release.outputs.version }}"
+
+      - name: Inspect release packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd target/release-artifacts
+          sha256sum --check SHA256SUMS
+          dpkg-deb --info ./*.deb
+          dpkg-deb --contents ./*.deb
+          rpm -qip ./*.rpm
+          rpm -qlp ./*.rpm
+          tar -tf ./*.tar.xz
+          [[ "$(dpkg-deb -f ./*.deb Package)" == "xfce4-profile-editor" ]]
+          debian_dependencies=$(dpkg-deb -f ./*.deb Depends)
+          [[ "$debian_dependencies" == *"accountsservice"* ]]
+          [[ "$debian_dependencies" == *"libgtk-4-1"* ]]
+          [[ "$(rpm -qp --qf '%{NAME}' ./*.rpm)" == "xfce4-profile-editor" ]]
+          rpm_dependencies=$(rpm -qpR ./*.rpm)
+          [[ "$rpm_dependencies" == *"accountsservice"* ]]
+          [[ "$rpm_dependencies" == *"gtk4 >= 4.10"* ]]
+          tar -tf ./*.tar.xz | grep -Fx 'usr/bin/xfce4-profile-editor'
+
+      - name: Upload release packages
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ steps.release.outputs.artifact_name }}
+          path: target/release-artifacts/*
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  draft-release:
+    name: Create draft release
+    if: ${{ github.ref_type == 'tag' }}
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+          path: target/release-artifacts
+
+      - name: Verify release packages
+        run: cd target/release-artifacts && sha256sum --check SHA256SUMS
+
+      - name: Create draft GitHub release
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --draft \
+            --fail-on-no-commits \
+            --generate-notes \
+            --title "Xfce Profile Editor ${{ needs.build.outputs.version }}" \
+            --verify-tag \
+            target/release-artifacts/*

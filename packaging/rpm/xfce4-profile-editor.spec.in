@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+Name:           xfce4-profile-editor
+Version:        @VERSION@
+Release:        1
+Summary:        Edit your Xfce display name and profile image
+
+License:        GPL-2.0-or-later
+URL:            https://github.com/camelofcode/xfce4-profile-editor
+BuildArch:      @ARCHITECTURE@
+Requires:       accountsservice
+Requires:       gtk4 >= 4.10
+Requires:       hicolor-icon-theme
+
+%global _build_id_links none
+
+%description
+Xfce Profile Editor changes the current user's display name and profile image
+through the same system interfaces used by the Xfce Whisker Menu.
+
+%install
+mkdir -p "%{buildroot}"
+cp -a "@STAGE_ROOT@/usr" "%{buildroot}/"
+
+%files
+%{_bindir}/xfce4-profile-editor
+%{_datadir}/applications/io.github.camelofcode.Xfce4ProfileEditor.desktop
+%{_datadir}/icons/hicolor/scalable/apps/io.github.camelofcode.Xfce4ProfileEditor.svg
+%{_datadir}/metainfo/io.github.camelofcode.Xfce4ProfileEditor.metainfo.xml
+%license %{_datadir}/doc/xfce4-profile-editor/LICENSE
+%doc %{_datadir}/doc/xfce4-profile-editor/COPYRIGHT

@@ -16,8 +16,9 @@ camera capture are implemented. The complete camera flow has been manually
 validated on a camera-equipped Cinnamon/X11 workstation, outside the Xfce
 desktop it is intended to integrate with. A translated desktop launcher,
 application icon, and AppStream metadata are provided for Xfce integration.
-Remaining work is primarily packaging, interface polish, and additional
-resilience checks. See
+Release-package automation is implemented for initial x86_64 testing.
+Remaining work is primarily target-distribution package acceptance, interface
+polish, and additional resilience checks. See
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the agreed scope,
 architecture, implementation phases, and acceptance criteria. See
 [PROGRESS.md](PROGRESS.md) for the current implementation and handoff status.
@@ -107,6 +108,15 @@ scripts/build-install-launch.sh stage
 This builds the release binary and places the application below `DESTDIR`.
 Meson honours standard installation-directory options for package builds. Do
 not run an unstaged system installation during development.
+
+## Release packages
+
+The tag-triggered GitHub Actions release workflow builds x86_64 `.deb`, `.rpm`,
+and `linux-x86_64.tar.xz` artifacts from the same verified Meson staging tree.
+It always creates a draft release for manual package and hardware acceptance;
+publishing remains an explicit maintainer action. See
+[docs/releasing.md](docs/releasing.md) for versioning, manual test builds, tag
+creation, and release approval.
 
 All user-visible messages are gettext-enabled. Refresh the translation template
 after changing strings with:
