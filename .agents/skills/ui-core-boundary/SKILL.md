@@ -5,7 +5,7 @@ description: Add or change Xfce Profile Editor features that cross GTK UI plumbi
 
 # UI/Core Boundary
 
-Read `IMPLEMENTATION_PLAN.md` and inspect the nearest related UI template, UI
+Inspect the nearest related UI template, UI
 module, core service, resource entry, and test before editing.
 
 ## Assign ownership first

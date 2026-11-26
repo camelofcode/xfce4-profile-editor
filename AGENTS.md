@@ -1,13 +1,7 @@
 # Xfce Profile Editor Guidance
 
 This project values explicit boundaries, readable Rust, and a small dependency
-surface. Read `IMPLEMENTATION_PLAN.md` before making architectural or
-scope-changing decisions, then read `PROGRESS.md` to determine the current
-implementation state and next unfinished phase.
-
-Update `PROGRESS.md` whenever a phase is completed or paused, a material design
-decision changes, or work is handed off with uncommitted changes. Keep it
-concise and factual; do not duplicate the full implementation plan.
+surface. The README describes the released features.
 
 ## Required skill
 
@@ -41,7 +35,7 @@ resource scheduling, not which required checks are eventually run.
 - Display-name writes use AccountsService `SetRealName`; profile-image writes
   keep `~/.face` and AccountsService `IconFile` in sync. Do not add a direct
   `/etc/passwd` writer, project-owned privileged helper, or project Polkit
-  policy without deliberately revising the implementation plan.
+  policy without an explicit change to the project's scope.
 - Installation-layout checks must use a non-empty `DESTDIR` inside `target/`
   or `/tmp`; never run an unstaged install or write to `/usr` during automated
   verification.
@@ -129,8 +123,8 @@ full gate after every small iteration.
 
 GitHub Actions must remain cost-conscious: keep one standard Linux validation
 job, cancel superseded runs, avoid scheduled or matrix jobs, and retain
-temporary artifacts for no more than seven days unless the implementation plan
-is deliberately revised. Workflows use read-only token permissions by default;
+temporary artifacts for no more than seven days unless the project explicitly
+revises its retention policy. Workflows use read-only token permissions by default;
 only the tag-triggered release job may request `contents: write`. Release
 automation creates a draft for manual verification and must never publish a
 release directly. Changes reach protected `main` through pull requests after

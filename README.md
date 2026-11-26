@@ -2,37 +2,30 @@
 
 [![CI](https://github.com/camelofcode/xfce4-profile-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/camelofcode/xfce4-profile-editor/actions/workflows/ci.yml)
 
-`xfce4-profile-editor` is a proposed Rust/GTK 4 utility for editing the current
-user's system-backed profile information in Xfce.
+Xfce Profile Editor is an independent Rust/GTK 4 app for editing your desktop
+profile. The maintainer has tested version 0.1 extensively on Xfce with Whisker
+Menu and on Cinnamon.
 
-The project is currently independent and is not an official Xfce component.
-Its working name reflects the desktop it is intended to integrate with.
+![Profile Editor showing a circular profile photo above the display name field and a “Profile image saved” message.](docs/screenshots/profile-editor.png)
 
-## Status
+## Features
 
-The repository is a functional work in progress focused on Whisker Menu's
-profile header. Display-name editing, profile-image selection/removal, and
-camera capture are implemented. The complete camera flow has been manually
-validated on a camera-equipped Cinnamon/X11 workstation, outside the Xfce
-desktop it is intended to integrate with. A translated desktop launcher,
-application icon, and AppStream metadata are provided for Xfce integration.
-Release-package automation is implemented for initial x86_64 testing.
-Remaining work is primarily target-distribution package acceptance, interface
-polish, and additional resilience checks. See
-[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the agreed scope,
-architecture, implementation phases, and acceptance criteria. See
-[PROGRESS.md](PROGRESS.md) for the current implementation and handoff status.
+- Change your display name.
+- Choose a profile photo from a file, take one with your webcam, or remove your
+  current photo.
 
-The initial application will edit only information with an established system
-store:
+Your name and photo appear in Whisker Menu and wherever else your desktop shows
+your system profile, including login and lock screens.
 
-- profile image (`~/.face` and AccountsService)
-- real/display name (AccountsService)
+Version 0.1 does not offer direct editing of `/etc/passwd` GECOS fields or
+password changes. User feedback will guide future features.
 
-Phone numbers, email, password, login name, and application-specific
-integrations are intentionally out of scope for the initial release. The
-earlier broader implementation is preserved in the Git tag
-`archive/full-profile-fields-2026-11-15` for possible future reference.
+## Xfce integration
+
+The installed `.desktop` file adds a **Profile Editor** launcher to the
+**Personal** section of Xfce Settings. To open it from Whisker Menu, set the
+menu’s **Edit Profile** command to `xfce4-profile-editor`. The package also
+includes a scalable application icon and AppStream metadata.
 
 ## Licence
 
@@ -84,13 +77,11 @@ unprivileged.
 compiler parallelism to the current machine. Repository build scripts,
 including the Meson-to-Cargo driver, are kept together under `scripts/`.
 
-For normal desktop acceptance, run `scripts/build-install-launch.sh install`.
-The application then appears as **Profile Editor** in Xfce Settings and may be
-launched through Xfce's configured profile action. Set Whisker Menu's **Edit
-Profile** command to `xfce4-profile-editor`. This tests the authoritative
-`/usr/bin/xfce4-profile-editor` installation. Use `cycle` when an immediate
-launch is more convenient. Paths below `target/` are internal build and staging
-artifacts and are not part of the normal launch workflow.
+To test the installed desktop integration, run
+`scripts/build-install-launch.sh install` and open **Profile Editor** from Xfce
+Settings or Whisker Menu. This launches `/usr/bin/xfce4-profile-editor`. Use
+`cycle` when an immediate launch is more convenient. Paths below `target/` are
+internal build and staging artifacts.
 
 All script, Meson, lint, and test commands reuse Cargo's normal dependency
 sources and the workspace `target/` artifact cache. Do not assign a temporary
