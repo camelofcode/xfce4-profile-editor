@@ -2,10 +2,8 @@
 
 # Project Progress
 
-Last updated: 2026-11-16
-
-This is the concise handoff record. `IMPLEMENTATION_PLAN.md` is the source of
-truth for current scope and architecture.
+Archived after the 0.1.0 release. The handoff below records the state of
+development on 2026-11-16.
 
 ## Current position
 
