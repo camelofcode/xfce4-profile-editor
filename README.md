@@ -6,6 +6,8 @@ Xfce Profile Editor is an independent Rust/GTK 4 app for editing your desktop
 profile. The maintainer has tested version 0.1 extensively on Xfce with Whisker
 Menu and on Cinnamon.
 
+![Profile Editor showing a circular profile photo above the display name field and a “Profile image saved” message.](docs/screenshots/profile-editor.png)
+
 ## Features
 
 - Change your display name.
